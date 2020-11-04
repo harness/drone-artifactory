@@ -1,4 +1,4 @@
-A plugin to upload to Jfrog artifactory.
+A plugin to upload files to Jfrog artifactory.
 
 # Building
 
@@ -20,11 +20,11 @@ Execute the plugin from your current working directory:
 
 ```text
 docker run --rm \
-  -e DRONE_COMMIT_SHA=8f51ad7884c5eb69c11d260a31da7a745e6b78e2 \
-  -e DRONE_COMMIT_BRANCH=master \
-  -e DRONE_BUILD_NUMBER=43 \
-  -e DRONE_BUILD_STATUS=success \
-  -w /drone/src \
-  -v $(pwd):/drone/src \
+  -e PLUGIN_USERNAME=foo \
+  -e PLUGIN_PASSWORD=bar \
+  -e PLUGIN_URL=https://jfrog.io/foo \
+  -e PLUGIN_SRC_FILE=/drone/README.md \
+  -e PLUGIN_TARGET_FILE=/pcf \
+  -v $(pwd):/drone \
   drone/drone-artifactory
 ```
