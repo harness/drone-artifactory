@@ -6,13 +6,14 @@ steps:
 - name: build
   image: golang
   commands:
-  - go build
   - go test ./...
+  - sh scripts/build.sh
 
 - name: publish
   image: plugins/docker
+  pull: if-not-exists
   settings:
-    repo: drone/drone-artifactory
+    repo: plugins/artifactory
     auto_tag: true
     dockerfile: docker/Dockerfile
     username:
