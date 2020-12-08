@@ -19,14 +19,14 @@ type Args struct {
 	Level string `envconfig:"PLUGIN_LOG_LEVEL"`
 
 	// TODO replace or remove
-	Username       string `envconfig:"PLUGIN_USERNAME"`
-	Password       string `envconfig:"PLUGIN_PASSWORD"`
-	APIKey         string `envconfig:"PLUGIN_API_KEY"`
-	AccessToken    string `envconfig:"PLUGIN_ACCESS_TOKEN"`
-	URL            string `envconfig:"PLUGIN_URL"`
-	SrcFilePattern string `envconfig:"PLUGIN_SRC_FILE"`
-	TargetPattern  string `envconfig:"PLUGIN_TARGET_FILE"`
-	Retries        int    `envconfig:"PLUGIN_RETRIES"`
+	Username    string `envconfig:"PLUGIN_USERNAME"`
+	Password    string `envconfig:"PLUGIN_PASSWORD"`
+	APIKey      string `envconfig:"PLUGIN_API_KEY"`
+	AccessToken string `envconfig:"PLUGIN_ACCESS_TOKEN"`
+	URL         string `envconfig:"PLUGIN_URL"`
+	Source      string `envconfig:"PLUGIN_SOURCE"`
+	Target      string `envconfig:"PLUGIN_TARGET"`
+	Retries     int    `envconfig:"PLUGIN_RETRIES"`
 }
 
 // Exec executes the plugin.
@@ -53,13 +53,13 @@ func Exec(ctx context.Context, args Args) error {
 		return fmt.Errorf("either username/password, api key or access token needs to be set")
 	}
 
-	if args.SrcFilePattern == "" {
+	if args.Source == "" {
 		return fmt.Errorf("source file needs to be set")
 	}
-	if args.TargetPattern == "" {
-		return fmt.Errorf("target file needs to be set")
+	if args.Target == "" {
+		return fmt.Errorf("target path needs to be set")
 	}
-	cmdArgs = append(cmdArgs, args.SrcFilePattern, args.TargetPattern)
+	cmdArgs = append(cmdArgs, args.Source, args.Target)
 
 	cmd := exec.Command("jfrog", cmdArgs...)
 	cmd.Stdout = os.Stdout
