@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // Args provides plugin execution arguments.
@@ -62,8 +63,19 @@ func Exec(ctx context.Context, args Args) error {
 	cmdArgs = append(cmdArgs, args.Source, args.Target)
 
 	cmd := exec.Command("jfrog", cmdArgs...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	trace(cmd)
+
 	err := cmd.Run()
 	return err
+}
+
+// trace writes each command to stdout with the command wrapped in an xml
+// tag so that it can be extracted and displayed in the logs.
+func trace(cmd *exec.Cmd) {
+	fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(cmd.Args, " "))
 }

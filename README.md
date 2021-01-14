@@ -11,7 +11,7 @@ scripts/build.sh
 Build the plugin image:
 
 ```text
-docker build -t drone/drone-artifactory -f docker/Dockerfile .
+docker build -t plugins/artifactory  -f docker/Dockerfile .
 ```
 
 # Testing
@@ -26,5 +26,5 @@ docker run --rm \
   -e PLUGIN_SOURCE=/drone/README.md \
   -e PLUGIN_TARGET=/pcf \
   -v $(pwd):/drone \
-  drone/drone-artifactory
+  plugins/artifactory
 ```
