@@ -12,6 +12,7 @@ RUN apk add --update \
     && rm -rf /var/cache/apk/*
 RUN curl -fL https://getcli.jfrog.io | sh /dev/stdin 1.35.5
 RUN mv ./jfrog /usr/local/bin/
+RUN chmod +x /usr/local/bin/jfrog
 
 ADD release/linux/amd64/plugin /bin/
 ENTRYPOINT ["/bin/plugin"]
