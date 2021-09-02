@@ -37,19 +37,19 @@ func Exec(ctx context.Context, args Args) error {
 		return fmt.Errorf("url needs to be set")
 	}
 
-	cmdArgs := []string{"jfrog", "rt", "u", fmt.Sprintf("--url=%s", args.URL)}
+	cmdArgs := []string{"jfrog", "rt", "u", fmt.Sprintf("--url %s", args.URL)}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
 
 	// Set authentication params
 	if args.Username != "" && args.Password != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--user $PLUGIN_USERNAME"))
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--password $PLUGIN_PASSWORD"))
+		cmdArgs = append(cmdArgs, "--user $PLUGIN_USERNAME")
+		cmdArgs = append(cmdArgs, "--password $PLUGIN_PASSWORD")
 	} else if args.APIKey != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey $PLUGIN_API_KEY"))
+		cmdArgs = append(cmdArgs, "--apikey $PLUGIN_API_KEY")
 	} else if args.AccessToken != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token $PLUGIN_ACCESS_TOKEN"))
+		cmdArgs = append(cmdArgs, "--access-token $PLUGIN_ACCESS_TOKEN")
 	} else {
 		return fmt.Errorf("either username/password, api key or access token needs to be set")
 	}
@@ -60,7 +60,7 @@ func Exec(ctx context.Context, args Args) error {
 	if args.Target == "" {
 		return fmt.Errorf("target path needs to be set")
 	}
-	cmdArgs = append(cmdArgs, args.Source, args.Target)
+	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	cmdStr := strings.Join(cmdArgs[:], " ")
 
 	cmd := exec.Command("sh", "-c", cmdStr)
