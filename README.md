@@ -4,13 +4,13 @@ A plugin to upload files to Jfrog artifactory.
 
 Build the plugin binary:
 
-```text
+```bash
 scripts/build.sh
 ```
 
 Build the plugin image:
 
-```text
+```bash
 docker build -t plugins/artifactory  -f docker/Dockerfile .
 ```
 
@@ -18,7 +18,7 @@ docker build -t plugins/artifactory  -f docker/Dockerfile .
 
 Execute the plugin from your current working directory:
 
-```text
+```bash
 docker run --rm \
   -e PLUGIN_USERNAME=foo \
   -e PLUGIN_PASSWORD=bar \
