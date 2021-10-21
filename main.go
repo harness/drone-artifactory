@@ -35,8 +35,7 @@ func main() {
 	}
 }
 
-// default formatter that writes logs without including timestamp
-// or level information.
+// default formatter that writes logs without including timestamp or level information.
 type formatter struct {}
 func (*formatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(entry.Message), nil
