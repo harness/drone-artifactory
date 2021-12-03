@@ -23,7 +23,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/drone-artifactory"
+  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -36,7 +36,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/drone-artifactory"
+  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -81,7 +81,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/drone-artifactory"
+  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -94,7 +94,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/drone-artifactory"
+  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -139,7 +139,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/drone-artifactory"
+  - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -152,7 +152,7 @@ steps:
   pull: always
   image: golang:1.17.3
   commands:
-  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/drone-artifactory"
+  - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/plugin"
   environment:
     CGO_ENABLED: 0
     GO111MODULE: on
@@ -202,8 +202,8 @@ server:
 steps:
 - name: build
   commands:
+  - go build -a -o release/windows/amd64/plugin 
   - echo $env:DRONE_SEMVER_SHORT
-  - go build -o release/windows/amd64/drone-artifactory.exe
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     $tag="windows-1809-amd64"
@@ -245,11 +245,7 @@ server:
 steps:
 - name: build
   commands:
-  - go version
-  - choco upgrade golang
-  - go version
   - echo $env:DRONE_SEMVER_SHORT
-  - go build -o release/windows/amd64/drone-artifactory.exe
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     $tag="windows-1903-amd64"
@@ -291,11 +287,7 @@ server:
 steps:
 - name: build
   commands:
-  - go version
-  - choco upgrade golang
-  - go version
   - echo $env:DRONE_SEMVER_SHORT
-  - go build -o release/windows/amd64/drone-artifactory.exe
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     $tag="windows-1909-amd64"

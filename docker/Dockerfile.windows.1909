@@ -1,5 +1,13 @@
 # escape=`
-FROM mcr.microsoft.com/windows/nanoserver:1903
+FROM golang:1.17.3 as builder
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+WORKDIR /src
+ENV CGO_ENABLED=0
+COPY . .
+RUN go build -o drone-artifactory.exe .
+
+FROM mcr.microsoft.com/windows/nanoserver:1909
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 USER ContainerAdministrator
 
@@ -7,5 +15,5 @@ ENV GODEBUG=netdns=go
 
 RUN choco install jfrog-cli
 
-ADD release/windows/amd64/drone-artifactory.exe C:/drone-artifactory.exe
+COPY --from=builder /src/drone-artifactory.exe C:/drone-artifactory.exe
 ENTRYPOINT [ "C:\\drone-artifactory.exe" ]
