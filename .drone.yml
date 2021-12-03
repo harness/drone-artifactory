@@ -1,3 +1,4 @@
+---
 kind: pipeline
 type: docker
 name: testing
@@ -200,11 +201,7 @@ server:
 
 steps:
 - name: build
-
   commands:
-  - go version
-  - choco upgrade golang
-  - go version
   - echo $env:DRONE_SEMVER_SHORT
   - go build -o release/windows/amd64/drone-artifactory.exe
   - docker login -u $env:USERNAME -p $env:PASSWORD
