@@ -200,6 +200,7 @@ server:
 
 steps:
 - name: build
+
   commands:
   - go version
   - choco upgrade golang
