@@ -1,0 +1,11 @@
+# escape=`
+FROM mcr.microsoft.com/windows/nanoserver:1809
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+USER ContainerAdministrator
+
+ENV GODEBUG=netdns=go
+
+RUN choco install jfrog-cli
+
+ADD release/windows/amd64/drone-artifactory.exe C:/drone-artifactory.exe
+ENTRYPOINT [ "C:\\drone-artifactory.exe" ]
