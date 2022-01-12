@@ -1,4 +1,4 @@
-image: drone/drone-artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}latest{{/if}}
+image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}latest{{/if}}
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
@@ -7,25 +7,37 @@ tags:
 {{/if}}
 manifests:
   -
-    image: drone/drone-artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-amd64
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-amd64
     platform:
       architecture: amd64
       os: linux
   -
-    image: drone/drone-artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm64
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm64
     platform:
-      variant: v8
       architecture: arm64
       os: linux
+      variant: v8
   -
-    image: drone/drone-artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm
     platform:
+      architecture: arm
+      os: linux
       variant: v7
-      architecture: arm
-      os: linux
   -
-    image: drone/drone-artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1809-amd64
     platform:
-      variant: v6
-      architecture: arm
-      os: linux
+      architecture: amd64
+      os: windows
+      version: 1809
+  -
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1903-amd64
+    platform:
+      architecture: amd64
+      os: windows
+      version: 1903
+  -
+    image: plugins/artifactory:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1909-amd64
+    platform:
+      architecture: amd64
+      os: windows
+      version: 1909

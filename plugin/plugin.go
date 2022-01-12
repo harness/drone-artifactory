@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -37,7 +38,7 @@ func Exec(ctx context.Context, args Args) error {
 		return fmt.Errorf("url needs to be set")
 	}
 
-	cmdArgs := []string{"jfrog", "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
@@ -63,7 +64,9 @@ func Exec(ctx context.Context, args Args) error {
 	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	cmdStr := strings.Join(cmdArgs[:], " ")
 
-	cmd := exec.Command("sh", "-c", cmdStr)
+	shell, shArg := getShell()
+
+	cmd := exec.Command(shell, shArg, cmdStr)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
 
@@ -73,6 +76,21 @@ func Exec(ctx context.Context, args Args) error {
 
 	err := cmd.Run()
 	return err
+}
+
+func getShell() (string, string) {
+	if runtime.GOOS == "windows" {
+		return "powershell", "-Command"
+	}
+
+	return "sh", "-c"
+}
+
+func getJfrogBin() string {
+	if runtime.GOOS == "windows" {
+		return "C:/bin/jfrog.exe"
+	}
+	return "jfrog"
 }
 
 // trace writes each command to stdout with the command wrapped in an xml
