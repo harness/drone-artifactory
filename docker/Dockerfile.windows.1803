@@ -1,23 +1,11 @@
 # escape=`
-FROM golang:1.17.3 as builder
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-
-WORKDIR /src
-ENV CGO_ENABLED=0
-COPY . .
-RUN go build -o drone-artifactory.exe .
-RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/1.35.5/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
-
 FROM mcr.microsoft.com/windows/servercore:1803
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go
+RUN mkdir /bin
+RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.10.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
+ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
 
-RUN choco install jfrog-cli
-
-RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/1.35.5/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
-
-
-COPY --from=builder /src/drone-artifactory.exe C:/drone-artifactory.exe
-ENTRYPOINT [ "C:\\drone-artifactory.exe" ]
+ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
