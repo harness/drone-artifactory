@@ -29,8 +29,8 @@ steps:
     GO111MODULE: on
   when:
     event:
-    - push
-    - pull_request
+      exclude:
+      - tag
 
 - name: build-tag
   pull: always
@@ -58,12 +58,14 @@ steps:
       from_secret: docker_username
   when:
     event:
-    - push
-    - tag
+      exclude:
+      - pull_request
 
 trigger:
-  branch:
-  - master
+  ref:
+  - refs/heads/main
+  - "refs/tags/**"
+  - "refs/pull/**"
 
 depends_on:
 - testing
@@ -87,8 +89,8 @@ steps:
     GO111MODULE: on
   when:
     event:
-    - push
-    - pull_request
+      exclude:
+      - tag
 
 - name: build-tag
   pull: always
@@ -116,12 +118,14 @@ steps:
       from_secret: docker_username
   when:
     event:
-    - push
-    - tag
+      exclude:
+      - pull_request
 
 trigger:
-  branch:
-  - master
+  ref:
+  - refs/heads/main
+  - "refs/tags/**"
+  - "refs/pull/**"
 
 depends_on:
 - testing
@@ -142,11 +146,10 @@ steps:
   - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/plugin"
   environment:
     CGO_ENABLED: 0
-    GO111MODULE: on
   when:
     event:
-    - push
-    - pull_request
+      exclude:
+      - tag
 
 - name: build-tag
   pull: always
@@ -174,12 +177,14 @@ steps:
       from_secret: docker_username
   when:
     event:
-    - push
-    - tag
+      exclude:
+      - pull_request
 
 trigger:
-  branch:
-  - master
+  ref:
+  - refs/heads/main
+  - "refs/tags/**"
+  - "refs/pull/**"
 
 depends_on:
 - testing
@@ -229,7 +234,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - refs/tags/*
 
 ---
@@ -277,7 +282,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - refs/tags/*
 
 ---
@@ -303,7 +308,7 @@ steps:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
 
 depends_on:
