@@ -1,0 +1,13 @@
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.5-218
+ENV GODEBUG netdns=go
+
+# Install jfrog cli with version 1.35.5
+RUN microdnf install curl ca-certificates  \
+    && rm -rf /var/cache/yum \
+    && microdnf clean all
+RUN curl -fL https://getcli.jfrog.io | sh /dev/stdin 1.35.5
+RUN mv ./jfrog /usr/local/bin/
+RUN chmod +x /usr/local/bin/jfrog
+
+ADD release/linux/amd64/plugin /bin/
+ENTRYPOINT ["/bin/plugin"]

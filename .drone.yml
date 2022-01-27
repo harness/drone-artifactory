@@ -61,6 +61,23 @@ steps:
       exclude:
       - pull_request
 
+- name: publish-ubi
+  pull: always
+  image: plugins/docker:linux-amd64
+  settings:
+    auto_tag: true
+    auto_tag_suffix: linux-amd64-ubi
+    dockerfile: docker/Dockerfile.linux.ubi.amd64
+    password:
+      from_secret: docker_password
+    repo: plugins/artifactory
+    username:
+      from_secret: docker_username
+  when:
+    event:
+      exclude:
+      - pull_request
+
 trigger:
   ref:
   - refs/heads/main
