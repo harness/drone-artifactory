@@ -80,7 +80,7 @@ func Exec(ctx context.Context, args Args) error {
 
 func getShell() (string, string) {
 	if runtime.GOOS == "windows" {
-		return "powershell", "-Command"
+		return "pwsh", "-Command"
 	}
 
 	return "sh", "-c"
