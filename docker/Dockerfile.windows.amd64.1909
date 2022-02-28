@@ -1,21 +1,11 @@
 # escape=`
-
-FROM mcr.microsoft.com/windows/servercore:1909 as base
+FROM mcr.microsoft.com/windows/servercore:1909
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go
 RUN mkdir /bin
 RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.10.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
-
-FROM mcr.microsoft.com/powershell:nanoserver-1909
-COPY --from=base /bin /bin
-
 ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
 
-# https://github.com/PowerShell/PowerShell/issues/6211#issuecomment-367477137
-USER ContainerAdministrator
-RUN setx /M PATH "%PATH%;C:\Program Files\PowerShell"
-
-SHELL ["pwsh", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
