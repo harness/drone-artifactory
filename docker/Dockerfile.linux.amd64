@@ -1,9 +1,6 @@
 FROM alpine:3.15 as alpine
 RUN apk add -U --no-cache ca-certificates
 
-FROM alpine:3.15
-ENV GODEBUG netdns=go
-COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Install jfrog cli with version 1.35.5
 RUN apk add --update \
@@ -12,6 +9,14 @@ RUN apk add --update \
 RUN curl -fL https://getcli.jfrog.io | sh /dev/stdin 1.35.5
 RUN mv ./jfrog /usr/local/bin/
 RUN chmod +x /usr/local/bin/jfrog
+
+
+FROM redhat/ubi8-minimal:8.5-230
+
+ENV GODEBUG netdns=go
+RUN microdnf update
+COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=alpine /usr/local/bin/jfrog /bin/
 
 ADD release/linux/amd64/plugin /bin/
 ENTRYPOINT ["/bin/plugin"]
