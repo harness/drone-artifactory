@@ -44,13 +44,14 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	// Set authentication params
+	envPrefix := getEnvPrefix()
 	if args.Username != "" && args.Password != "" {
-		cmdArgs = append(cmdArgs, "--user $PLUGIN_USERNAME")
-		cmdArgs = append(cmdArgs, "--password $PLUGIN_PASSWORD")
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--user %sPLUGIN_USERNAME", envPrefix))
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--password %sPLUGIN_PASSWORD", envPrefix))
 	} else if args.APIKey != "" {
-		cmdArgs = append(cmdArgs, "--apikey $PLUGIN_API_KEY")
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey %sPLUGIN_API_KEY", envPrefix))
 	} else if args.AccessToken != "" {
-		cmdArgs = append(cmdArgs, "--access-token $PLUGIN_ACCESS_TOKEN")
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
 	} else {
 		return fmt.Errorf("either username/password, api key or access token needs to be set")
 	}
@@ -91,6 +92,13 @@ func getJfrogBin() string {
 		return "C:/bin/jfrog.exe"
 	}
 	return "jfrog"
+}
+
+func getEnvPrefix() string {
+	if runtime.GOOS == "windows" {
+		return "$Env:"
+	}
+	return "$"
 }
 
 // trace writes each command to stdout with the command wrapped in an xml
