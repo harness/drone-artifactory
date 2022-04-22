@@ -175,6 +175,18 @@ steps:
   when:
     event: [ push ]
 
+- name: build_nano_latest
+  environment:
+    VERSION: 1809
+    USERNAME:
+      from_secret: docker_username
+    PASSWORD:
+      from_secret: docker_password
+  commands:
+  - powershell.exe scripts/windows/latest_nano.ps1
+  when:
+    event: [ push ]
+
 - name: build_tag
   environment:
     VERSION: 1809
