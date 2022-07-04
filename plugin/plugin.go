@@ -33,9 +33,6 @@ type Args struct {
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
-	// for jfrogv2 cli, to hide unwanted messages
-	os.Setenv("CI", "true");
-
 	// write code here
 	if args.URL == "" {
 		return fmt.Errorf("url needs to be set")
