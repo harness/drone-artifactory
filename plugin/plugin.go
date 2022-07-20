@@ -29,6 +29,7 @@ type Args struct {
 	Source      string `envconfig:"PLUGIN_SOURCE"`
 	Target      string `envconfig:"PLUGIN_TARGET"`
 	Retries     int    `envconfig:"PLUGIN_RETRIES"`
+	Flat        string `envconfig:"PLUGIN_FLAT"`
 }
 
 // Exec executes the plugin.
@@ -54,6 +55,10 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
 	} else {
 		return fmt.Errorf("either username/password, api key or access token needs to be set")
+	}
+
+	if args.Flat != "" && args.Flat == "true" {
+		cmdArgs = append(cmdArgs, "--flat")
 	}
 
 	if args.Source == "" {
