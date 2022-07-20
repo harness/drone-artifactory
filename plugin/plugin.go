@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -29,6 +30,7 @@ type Args struct {
 	Source      string `envconfig:"PLUGIN_SOURCE"`
 	Target      string `envconfig:"PLUGIN_TARGET"`
 	Retries     int    `envconfig:"PLUGIN_RETRIES"`
+	Flat        string `envconfig:"PLUGIN_FLAT"`
 }
 
 // Exec executes the plugin.
@@ -55,6 +57,9 @@ func Exec(ctx context.Context, args Args) error {
 	} else {
 		return fmt.Errorf("either username/password, api key or access token needs to be set")
 	}
+
+	flat := parseBoolOrDefault(false, args.Flat)
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
 
 	if args.Source == "" {
 		return fmt.Errorf("source file needs to be set")
@@ -99,6 +104,16 @@ func getEnvPrefix() string {
 		return "$Env:"
 	}
 	return "$"
+}
+
+func parseBoolOrDefault(defaultValue bool, s string) (result bool) {
+	var err error
+	result, err = strconv.ParseBool(s)
+	if err != nil {
+		result = defaultValue
+	}
+
+	return
 }
 
 // trace writes each command to stdout with the command wrapped in an xml
