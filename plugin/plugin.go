@@ -31,6 +31,8 @@ type Args struct {
 	Target      string `envconfig:"PLUGIN_TARGET"`
 	Retries     int    `envconfig:"PLUGIN_RETRIES"`
 	Flat        string `envconfig:"PLUGIN_FLAT"`
+	Spec        string `envconfig:"PLUGIN_SPEC"`
+	SpecVars    string `envconfig:"PLUGIN_SPEC_VARS"`
 }
 
 // Exec executes the plugin.
@@ -61,13 +63,22 @@ func Exec(ctx context.Context, args Args) error {
 	flat := parseBoolOrDefault(false, args.Flat)
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
 
-	if args.Source == "" {
-		return fmt.Errorf("source file needs to be set")
+	// Take in spec file or use source/target arguments
+	if args.Spec != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
+		if args.SpecVars != "" {
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars=%s", args.SpecVars))
+		}
+	} else {
+		if args.Source == "" {
+			return fmt.Errorf("source file needs to be set")
+		}
+		if args.Target == "" {
+			return fmt.Errorf("target path needs to be set")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	}
-	if args.Target == "" {
-		return fmt.Errorf("target path needs to be set")
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
+
 	cmdStr := strings.Join(cmdArgs[:], " ")
 
 	shell, shArg := getShell()
