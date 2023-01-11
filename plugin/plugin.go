@@ -67,7 +67,7 @@ func Exec(ctx context.Context, args Args) error {
 	if args.Spec != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
 		if args.SpecVars != "" {
-			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars=%s", args.SpecVars))
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
 		}
 	} else {
 		if args.Source == "" {
