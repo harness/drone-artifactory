@@ -32,6 +32,7 @@ type Args struct {
 	Retries     int    `envconfig:"PLUGIN_RETRIES"`
 	Flat        string `envconfig:"PLUGIN_FLAT"`
 	Spec        string `envconfig:"PLUGIN_SPEC"`
+	Threads     int    `envconfig:"PLUGIN_THREADS"`
 	SpecVars    string `envconfig:"PLUGIN_SPEC_VARS"`
 }
 
@@ -62,6 +63,10 @@ func Exec(ctx context.Context, args Args) error {
 
 	flat := parseBoolOrDefault(false, args.Flat)
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
+
+	if args.Threads > 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
+	}
 
 	// Take in spec file or use source/target arguments
 	if args.Spec != "" {
