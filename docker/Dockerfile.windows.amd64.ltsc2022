@@ -1,0 +1,12 @@
+# escape=`
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+USER ContainerAdministrator
+
+ENV GODEBUG=netdns=go
+RUN mkdir /bin
+RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.10.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
+ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
+
+ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
