@@ -1,6 +1,10 @@
 deps:
   apt:
-    - jfrog-cli-v2-jf
+    packages:
+      - jfrog-cli-v2-jf
+    sources:
+      - line: deb https://releases.jfrog.io/artifactory/jfrog-debs xenial contrib
+        key: https://releases.jfrog.io/artifactory/jfrog-gpg-public/jfrog_public_gpg.key
   brew:
     - jfrog-cli
   choco:
