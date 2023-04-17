@@ -27,7 +27,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
@@ -39,7 +38,6 @@ steps:
           - tag
 
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
@@ -50,7 +48,6 @@ steps:
         - tag
 
   - name: publish
-    pull: always
     image: plugins/docker:linux-amd64
     settings:
       auto_tag: true
@@ -78,6 +75,7 @@ depends_on:
 ---
 kind: pipeline
 name: linux-arm64
+type: vm
 pool:
   use: ubuntu_arm64
 
@@ -87,7 +85,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
@@ -99,7 +96,6 @@ steps:
           - tag
 
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
@@ -110,7 +106,6 @@ steps:
         - tag
 
   - name: publish
-    pull: always
     image: plugins/docker:linux-arm64
     settings:
       auto_tag: true
@@ -148,7 +143,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -159,7 +153,6 @@ steps:
         exclude:
           - tag
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -169,12 +162,67 @@ steps:
       event:
         - tag
   - name: publish
-    pull: always
     image: plugins/docker@sha256:f0233d950ae87ee6cb5500b2d5497fe02aa338201c0bdce2619f443fd174cfa4
     settings:
       auto_tag: true
       auto_tag_suffix: windows-1809-amd64
       dockerfile: docker/Dockerfile.windows.amd64.1809
+      password:
+        from_secret: docker_password
+      repo: plugins/artifactory
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+          - pull_request
+
+depends_on:
+  - testing
+
+trigger:
+  ref:
+    - refs/heads/main
+    - refs/tags/**
+    - "refs/pull/**"
+
+---
+kind: pipeline
+type: vm
+name: windows-ltsc2022-amd64
+
+pool:
+  use: windows-2022
+
+platform:
+  os: windows
+
+steps:
+  - name: build-push
+    image: golang:1.18
+    commands:
+      - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
+    environment:
+      CGO_ENABLED: 0
+    when:
+      event:
+        exclude:
+          - tag
+  - name: build-tag
+    image: golang:1.18
+    commands:
+      - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
+    environment:
+      CGO_ENABLED: 0
+    when:
+      event:
+        - tag
+  - name: publish
+    image: plugins/docker@sha256:f0233d950ae87ee6cb5500b2d5497fe02aa338201c0bdce2619f443fd174cfa4
+    settings:
+      auto_tag: true
+      auto_tag_suffix: windows-ltsc2022-amd64
+      dockerfile: docker/Dockerfile.windows.amd64.ltsc2022
       password:
         from_secret: docker_password
       repo: plugins/artifactory
@@ -208,7 +256,6 @@ platform:
 
 steps:
   - name: manifest
-    pull: always
     image: plugins/manifest
     settings:
       ignore_missing: "true"
@@ -228,3 +275,4 @@ depends_on:
   - linux-amd64
   - linux-arm64
   - windows-1809-amd64
+  - windows-ltsc2022-amd64
