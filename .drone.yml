@@ -8,7 +8,7 @@ pool:
 
 steps:
   - name: build
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - go test ./...
       - sh scripts/build.sh
@@ -28,7 +28,7 @@ platform:
 steps:
   - name: build-push
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
     environment:
@@ -40,7 +40,7 @@ steps:
 
   - name: build-tag
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
     environment:
@@ -88,7 +88,7 @@ platform:
 steps:
   - name: build-push
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
     environment:
@@ -100,7 +100,7 @@ steps:
 
   - name: build-tag
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
     environment:
@@ -149,7 +149,7 @@ platform:
 steps:
   - name: build-push
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
     environment:
@@ -160,7 +160,7 @@ steps:
           - tag
   - name: build-tag
     pull: always
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
     environment:
