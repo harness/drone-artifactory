@@ -27,7 +27,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
@@ -39,7 +38,6 @@ steps:
           - tag
 
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/plugin'
@@ -50,7 +48,6 @@ steps:
         - tag
 
   - name: publish
-    pull: always
     image: plugins/docker:linux-amd64
     settings:
       auto_tag: true
@@ -87,7 +84,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
@@ -99,7 +95,6 @@ steps:
           - tag
 
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/plugin'
@@ -110,7 +105,6 @@ steps:
         - tag
 
   - name: publish
-    pull: always
     image: plugins/docker:linux-arm64
     settings:
       auto_tag: true
@@ -148,7 +142,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -159,7 +152,6 @@ steps:
         exclude:
           - tag
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -169,7 +161,6 @@ steps:
       event:
         - tag
   - name: publish
-    pull: always
     image: plugins/docker@sha256:f0233d950ae87ee6cb5500b2d5497fe02aa338201c0bdce2619f443fd174cfa4
     settings:
       auto_tag: true
@@ -207,7 +198,6 @@ platform:
 
 steps:
   - name: build-push
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -218,7 +208,6 @@ steps:
         exclude:
           - tag
   - name: build-tag
-    pull: always
     image: golang:1.18
     commands:
       - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
@@ -228,7 +217,6 @@ steps:
       event:
         - tag
   - name: publish
-    pull: always
     image: plugins/docker@sha256:f0233d950ae87ee6cb5500b2d5497fe02aa338201c0bdce2619f443fd174cfa4
     settings:
       auto_tag: true
@@ -267,7 +255,6 @@ platform:
 
 steps:
   - name: manifest
-    pull: always
     image: plugins/manifest
     settings:
       ignore_missing: "true"
