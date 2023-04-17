@@ -75,6 +75,7 @@ depends_on:
 ---
 kind: pipeline
 name: linux-arm64
+type: vm
 pool:
   use: ubuntu_arm64
 
