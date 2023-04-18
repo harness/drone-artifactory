@@ -8,7 +8,7 @@ deps:
   brew:
     - jfrog-cli
   choco:
-    - jfrog-cli
+    - jfrog-cli-v2-jf
 run:
   binary:
     source: https://github.com/harness/drone-artifactory/releases/download/{{ release }}/plugin-{{ os }}-{{ arch }}.zst
