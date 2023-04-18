@@ -109,6 +109,11 @@ func getShell() (string, string) {
 }
 
 func getJfrogBin() string {
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat("C:/bin/jfrog.exe"); err == nil {
+			return "C:/bin/jfrog.exe"
+		}
+	}
 	return "jf"
 }
 
