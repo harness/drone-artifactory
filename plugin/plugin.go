@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -22,18 +23,21 @@ type Args struct {
 	Level string `envconfig:"PLUGIN_LOG_LEVEL"`
 
 	// TODO replace or remove
-	Username    string `envconfig:"PLUGIN_USERNAME"`
-	Password    string `envconfig:"PLUGIN_PASSWORD"`
-	APIKey      string `envconfig:"PLUGIN_API_KEY"`
-	AccessToken string `envconfig:"PLUGIN_ACCESS_TOKEN"`
-	URL         string `envconfig:"PLUGIN_URL"`
-	Source      string `envconfig:"PLUGIN_SOURCE"`
-	Target      string `envconfig:"PLUGIN_TARGET"`
-	Retries     int    `envconfig:"PLUGIN_RETRIES"`
-	Flat        string `envconfig:"PLUGIN_FLAT"`
-	Spec        string `envconfig:"PLUGIN_SPEC"`
-	Threads     int    `envconfig:"PLUGIN_THREADS"`
-	SpecVars    string `envconfig:"PLUGIN_SPEC_VARS"`
+	Username        string `envconfig:"PLUGIN_USERNAME"`
+	Password        string `envconfig:"PLUGIN_PASSWORD"`
+	APIKey          string `envconfig:"PLUGIN_API_KEY"`
+	AccessToken     string `envconfig:"PLUGIN_ACCESS_TOKEN"`
+	URL             string `envconfig:"PLUGIN_URL"`
+	Source          string `envconfig:"PLUGIN_SOURCE"`
+	Target          string `envconfig:"PLUGIN_TARGET"`
+	Retries         int    `envconfig:"PLUGIN_RETRIES"`
+	Flat            string `envconfig:"PLUGIN_FLAT"`
+	Spec            string `envconfig:"PLUGIN_SPEC"`
+	Threads         int    `envconfig:"PLUGIN_THREADS"`
+	SpecVars        string `envconfig:"PLUGIN_SPEC_VARS"`
+	Insecure        string `envconfig:"PLUGIN_INSECURE"`
+	PEMFileContents string `envconfig:"PLUGIN_PEM_FILE_CONTENTS"`
+	PEMFilePath     string `envconfig:"PLUGIN_PEM_FILE_PATH"`
 }
 
 // Exec executes the plugin.
@@ -67,7 +71,41 @@ func Exec(ctx context.Context, args Args) error {
 	if args.Threads > 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
 	}
-
+	// Set insecure flag
+	insecure := parseBoolOrDefault(false, args.Insecure)
+	if insecure {
+		cmdArgs = append(cmdArgs, "--insecure-tls")
+	}
+	// create pem file
+	if args.PEMFileContents != "" && !insecure {
+		var path string
+		// figure out path to write pem file
+		if args.PEMFilePath == "" {
+			if runtime.GOOS == "windows" {
+				path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
+			} else {
+				path = "/root/.jfrog/security/certs/cert.pem"
+			}
+		} else {
+			path = args.PEMFilePath
+		}
+		fmt.Printf("Creating pem file at %q\n", path)
+		// write pen contents to path
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			// remove filename from path
+			dir := filepath.Dir(path)
+			pemFolderErr := os.MkdirAll(dir, 0700)
+			if pemFolderErr != nil {
+				return fmt.Errorf("error creating pem folder: %s", pemFolderErr)
+			}
+			// write pem contents
+			pemWriteErr := os.WriteFile(path, []byte(args.PEMFileContents), 0600)
+			if pemWriteErr != nil {
+				return fmt.Errorf("error writing pem file: %s", pemWriteErr)
+			}
+			fmt.Printf("Successfully created pem file at %q\n", path)
+		}
+	}
 	// Take in spec file or use source/target arguments
 	if args.Spec != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
