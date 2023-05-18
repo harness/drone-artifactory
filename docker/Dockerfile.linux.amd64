@@ -6,7 +6,7 @@ ENV GODEBUG netdns=go
 ENV CI=true
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Install jfrog cli with version 1.35.5
+# Install jfrog cli with version 2.37.3
 RUN apk add --update \
     curl \
     && rm -rf /var/cache/apk/*
