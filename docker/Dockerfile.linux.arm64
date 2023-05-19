@@ -7,11 +7,11 @@ FROM arm64v8/alpine:3.12
 ENV GODEBUG netdns=go
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Install jfrog cli with version 1.35.5
+# Install jfrog cli with version 2.37.3
 RUN apk add --update \
     curl \
     && rm -rf /var/cache/apk/*
-RUN curl -fL https://getcli.jfrog.io | sh /dev/stdin 2.36.1
+RUN curl -fL https://getcli.jfrog.io | sh /dev/stdin 2.37.3
 RUN mv ./jfrog /usr/local/bin/
 RUN chmod +x /usr/local/bin/jfrog
 
