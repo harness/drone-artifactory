@@ -2,7 +2,7 @@ FROM arm64v8/alpine:3.18 as alpine
 RUN apk add -U --no-cache ca-certificates
 
 
-FROM arm64v8/alpine:3.16
+FROM arm64v8/alpine:3.12
 
 ENV GODEBUG netdns=go
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -11,7 +11,7 @@ COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 RUN apk add --update \
     curl \
     && rm -rf /var/cache/apk/*
-RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.37.3
+RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.42.1
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
