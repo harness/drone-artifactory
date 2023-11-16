@@ -35,6 +35,7 @@ type Args struct {
 	Spec            string `envconfig:"PLUGIN_SPEC"`
 	Threads         int    `envconfig:"PLUGIN_THREADS"`
 	SpecVars        string `envconfig:"PLUGIN_SPEC_VARS"`
+	TargetProps     string `envconfig:"PLUGIN_TARGET_PROPS"`
 	Insecure        string `envconfig:"PLUGIN_INSECURE"`
 	PEMFileContents string `envconfig:"PLUGIN_PEM_FILE_CONTENTS"`
 	PEMFilePath     string `envconfig:"PLUGIN_PEM_FILE_PATH"`
@@ -113,6 +114,9 @@ func Exec(ctx context.Context, args Args) error {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
 		}
 	} else {
+		if args.TargetProps != "" {
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", args.TargetProps))
+		}
 		if args.Source == "" {
 			return fmt.Errorf("source file needs to be set")
 		}
