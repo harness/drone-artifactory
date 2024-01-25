@@ -6,11 +6,11 @@ ENV GODEBUG netdns=go
 ENV CI=true
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Install jfrog cli with version 2.37.3
+# Install jfrog cli with version 2.52.9
 RUN apk add --update \
     curl \
     && rm -rf /var/cache/apk/*
-RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.50.0
+RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.52.9
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
