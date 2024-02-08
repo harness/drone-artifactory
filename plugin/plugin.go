@@ -55,19 +55,6 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
 
-	// // Set authentication params
-	// envPrefix := getEnvPrefix()
-	// if args.Username != "" && args.Password != "" {
-	// 	cmdArgs = append(cmdArgs, fmt.Sprintf("--user %sPLUGIN_USERNAME", envPrefix))
-	// 	cmdArgs = append(cmdArgs, fmt.Sprintf("--password %sPLUGIN_PASSWORD", envPrefix))
-	// } else if args.APIKey != "" {
-	// 	cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey %sPLUGIN_API_KEY", envPrefix))
-	// } else if args.AccessToken != "" {
-	// 	cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
-	// } else {
-	// 	return fmt.Errorf("either username/password, api key or access token needs to be set")
-	// }
-
 	// Set authentication params
 	cmdArgs, error := setAuthParams(cmdArgs, args)
 	if error != nil {
