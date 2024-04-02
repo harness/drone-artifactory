@@ -39,6 +39,8 @@ type Args struct {
 	Insecure        string `envconfig:"PLUGIN_INSECURE"`
 	PEMFileContents string `envconfig:"PLUGIN_PEM_FILE_CONTENTS"`
 	PEMFilePath     string `envconfig:"PLUGIN_PEM_FILE_PATH"`
+	BuildNumber     string `envconfig:"PLUGIN_BUILD_NUMBER"`
+	BuildName       string `envconfig:"PLUGIN_BUILD_NAME"`
 }
 
 // Exec executes the plugin.
@@ -54,16 +56,9 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	// Set authentication params
-	envPrefix := getEnvPrefix()
-	if args.Username != "" && args.Password != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--user %sPLUGIN_USERNAME", envPrefix))
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--password %sPLUGIN_PASSWORD", envPrefix))
-	} else if args.APIKey != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey %sPLUGIN_API_KEY", envPrefix))
-	} else if args.AccessToken != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
-	} else {
-		return fmt.Errorf("either username/password, api key or access token needs to be set")
+	cmdArgs, error := setAuthParams(cmdArgs, args)
+	if error != nil {
+		return error
 	}
 
 	flat := parseBoolOrDefault(false, args.Flat)
@@ -77,6 +72,15 @@ func Exec(ctx context.Context, args Args) error {
 	if insecure {
 		cmdArgs = append(cmdArgs, "--insecure-tls")
 	}
+
+	// Add --build-number and --build-name flags if provided
+	if args.BuildNumber != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
+	}
+	if args.BuildName != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name=%s", args.BuildName))
+	}
+
 	// create pem file
 	if args.PEMFileContents != "" && !insecure {
 		var path string
@@ -140,6 +144,23 @@ func Exec(ctx context.Context, args Args) error {
 
 	err := cmd.Run()
 	return err
+}
+
+// setAuthParams appends authentication parameters to cmdArgs based on the provided credentials.
+func setAuthParams(cmdArgs []string, args Args) ([]string, error) {
+	// Set authentication params
+	envPrefix := getEnvPrefix()
+	if args.Username != "" && args.Password != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--user %sPLUGIN_USERNAME", envPrefix))
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--password %sPLUGIN_PASSWORD", envPrefix))
+	} else if args.APIKey != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey %sPLUGIN_API_KEY", envPrefix))
+	} else if args.AccessToken != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
+	} else {
+		return nil, fmt.Errorf("either username/password, api key or access token needs to be set")
+	}
+	return cmdArgs, nil
 }
 
 func getShell() (string, string) {
