@@ -78,7 +78,7 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
 	}
 	if args.BuildName != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name=%s", args.BuildName))
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
 	}
 
 	// create pem file
