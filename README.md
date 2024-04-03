@@ -32,6 +32,25 @@ docker run --rm \
   plugins/artifactory
 ```
 
+## Harness CI Example:
+```yaml
+              - step:
+                  type: Plugin
+                  name: jFrog-Test
+                  identifier: Email_Plugin
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: plugins/artifactory:linux-amd64
+                    settings:
+                      access_token: <JFROG_ACCESS_TOKEN>
+                      url: https://URL.jfrog.io/artifactory/artifactory-test/
+                      source: /harness/cache.txt
+                      target: newdemo
+                      build_name: <+pipeline.name>
+                      build_number: <+pipeline.executionId>
+                      target_props: key1=value1,key2=value2
+```
+
 ## Community and Support
 [Harness Community Slack](https://join.slack.com/t/harnesscommunity/shared_invite/zt-y4hdqh7p-RVuEQyIl5Hcx4Ck8VCvzBw) - Join the #drone slack channel to connect with our engineers and other users running Drone CI.
 
