@@ -25,6 +25,9 @@ docker run --rm \
   -e PLUGIN_URL=<url> \
   -e PLUGIN_SOURCE=/drone/README.md \
   -e PLUGIN_TARGET=/pcf \
+  -e PLUGIN_BUILD_NAME=buildName \
+  -e PLUGIN_BUILD_NUMBER=4 \
+  -e PLUGIN_TAREGT_PROPS='key1=value1,key2=value2'
   -v $(pwd):/drone \
   plugins/artifactory
 ```
