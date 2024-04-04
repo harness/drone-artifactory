@@ -25,8 +25,30 @@ docker run --rm \
   -e PLUGIN_URL=<url> \
   -e PLUGIN_SOURCE=/drone/README.md \
   -e PLUGIN_TARGET=/pcf \
+  -e PLUGIN_BUILD_NAME=buildName \
+  -e PLUGIN_BUILD_NUMBER=4 \
+  -e PLUGIN_TAREGT_PROPS='key1=value1,key2=value2'
   -v $(pwd):/drone \
   plugins/artifactory
+```
+
+## Harness CI Example:
+```yaml
+              - step:
+                  type: Plugin
+                  name: jFrog-Test
+                  identifier: Email_Plugin
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: plugins/artifactory:linux-amd64
+                    settings:
+                      access_token: <JFROG_ACCESS_TOKEN>
+                      url: https://URL.jfrog.io/artifactory/artifactory-test/
+                      source: /harness/cache.txt
+                      target: newdemo
+                      build_name: <+pipeline.name>
+                      build_number: <+pipeline.executionId>
+                      target_props: key1=value1,key2=value2
 ```
 
 ## Community and Support
