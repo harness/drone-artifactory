@@ -169,7 +169,14 @@ func publishBuildInfo(args Args) error {
 		return err
 	}
 
-	publishCmdArgs := []string{getJfrogBin(), "rt", "build-publish", args.BuildName, args.BuildNumber, fmt.Sprintf("--url=%s", sanitizedURL)}
+	publishCmdArgs := []string{
+		getJfrogBin(),
+		"rt",
+		"build-publish",
+		"\"" + args.BuildName + "\"",
+		"\"" + args.BuildNumber + "\"",
+		fmt.Sprintf("--url=%s", sanitizedURL),
+	}
 
 	if args.AccessToken != "" {
 		publishCmdArgs = append(publishCmdArgs, fmt.Sprintf("--access-token=%sPLUGIN_ACCESS_TOKEN", getEnvPrefix()))
