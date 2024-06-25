@@ -7,6 +7,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,24 +24,25 @@ type Args struct {
 	Level string `envconfig:"PLUGIN_LOG_LEVEL"`
 
 	// TODO replace or remove
-	Username        string `envconfig:"PLUGIN_USERNAME"`
-	Password        string `envconfig:"PLUGIN_PASSWORD"`
-	APIKey          string `envconfig:"PLUGIN_API_KEY"`
-	AccessToken     string `envconfig:"PLUGIN_ACCESS_TOKEN"`
-	URL             string `envconfig:"PLUGIN_URL"`
-	Source          string `envconfig:"PLUGIN_SOURCE"`
-	Target          string `envconfig:"PLUGIN_TARGET"`
-	Retries         int    `envconfig:"PLUGIN_RETRIES"`
-	Flat            string `envconfig:"PLUGIN_FLAT"`
-	Spec            string `envconfig:"PLUGIN_SPEC"`
-	Threads         int    `envconfig:"PLUGIN_THREADS"`
-	SpecVars        string `envconfig:"PLUGIN_SPEC_VARS"`
-	TargetProps     string `envconfig:"PLUGIN_TARGET_PROPS"`
-	Insecure        string `envconfig:"PLUGIN_INSECURE"`
-	PEMFileContents string `envconfig:"PLUGIN_PEM_FILE_CONTENTS"`
-	PEMFilePath     string `envconfig:"PLUGIN_PEM_FILE_PATH"`
-	BuildNumber     string `envconfig:"PLUGIN_BUILD_NUMBER"`
-	BuildName       string `envconfig:"PLUGIN_BUILD_NAME"`
+	Username         string `envconfig:"PLUGIN_USERNAME"`
+	Password         string `envconfig:"PLUGIN_PASSWORD"`
+	APIKey           string `envconfig:"PLUGIN_API_KEY"`
+	AccessToken      string `envconfig:"PLUGIN_ACCESS_TOKEN"`
+	URL              string `envconfig:"PLUGIN_URL"`
+	Source           string `envconfig:"PLUGIN_SOURCE"`
+	Target           string `envconfig:"PLUGIN_TARGET"`
+	Retries          int    `envconfig:"PLUGIN_RETRIES"`
+	Flat             string `envconfig:"PLUGIN_FLAT"`
+	Spec             string `envconfig:"PLUGIN_SPEC"`
+	Threads          int    `envconfig:"PLUGIN_THREADS"`
+	SpecVars         string `envconfig:"PLUGIN_SPEC_VARS"`
+	TargetProps      string `envconfig:"PLUGIN_TARGET_PROPS"`
+	Insecure         string `envconfig:"PLUGIN_INSECURE"`
+	PEMFileContents  string `envconfig:"PLUGIN_PEM_FILE_CONTENTS"`
+	PEMFilePath      string `envconfig:"PLUGIN_PEM_FILE_PATH"`
+	BuildNumber      string `envconfig:"PLUGIN_BUILD_NUMBER"`
+	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
+	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 }
 
 // Exec executes the plugin.
@@ -143,7 +145,76 @@ func Exec(ctx context.Context, args Args) error {
 	trace(cmd)
 
 	err := cmd.Run()
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
+	if args.PublishBuildInfo {
+		if err := publishBuildInfo(args); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func publishBuildInfo(args Args) error {
+	if args.BuildName == "" || args.BuildNumber == "" {
+		return fmt.Errorf("both build name and build number need to be set when publishing build info")
+	}
+
+	sanitizedURL, err := sanitizeURL(args.URL)
+	if err != nil {
+		return err
+	}
+
+	publishCmdArgs := []string{
+		getJfrogBin(),
+		"rt",
+		"build-publish",
+		"\"" + args.BuildName + "\"",
+		"\"" + args.BuildNumber + "\"",
+		fmt.Sprintf("--url=%s", sanitizedURL),
+	}
+
+	if args.AccessToken != "" {
+		publishCmdArgs = append(publishCmdArgs, fmt.Sprintf("--access-token=%sPLUGIN_ACCESS_TOKEN", getEnvPrefix()))
+	} else if args.Username != "" && args.Password != "" {
+		publishCmdArgs = append(publishCmdArgs, fmt.Sprintf("--user=%sPLUGIN_USERNAME", getEnvPrefix()))
+		publishCmdArgs = append(publishCmdArgs, fmt.Sprintf("--password=%sPLUGIN_PASSWORD", getEnvPrefix()))
+	} else {
+		return fmt.Errorf("either access token or username/password need to be set for publishing build info")
+	}
+
+	publishCmdStr := strings.Join(publishCmdArgs, " ")
+	shell, shArg := getShell()
+	publishCmd := exec.Command(shell, shArg, publishCmdStr)
+	publishCmd.Env = os.Environ()
+	publishCmd.Env = append(publishCmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
+	publishCmd.Stdout = os.Stdout
+	publishCmd.Stderr = os.Stderr
+	trace(publishCmd)
+
+	if err := publishCmd.Run(); err != nil {
+		return fmt.Errorf("error publishing build info: %s", err)
+	}
+
+	return nil
+}
+
+// sanitizeURL trims the URL to include only up to the '/artifactory/' path.
+func sanitizeURL(inputURL string) (string, error) {
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL: %s", inputURL)
+	}
+	parts := strings.SplitN(parsedURL.Path, "/artifactory/", 2)
+	if len(parts) == 0 {
+		return "", fmt.Errorf("url does not contain '/artifactory/': %s", inputURL)
+	}
+	parsedURL.Path = parts[0] + "/artifactory/"
+	return parsedURL.String(), nil
 }
 
 // setAuthParams appends authentication parameters to cmdArgs based on the provided credentials.
