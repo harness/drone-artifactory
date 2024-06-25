@@ -209,17 +209,11 @@ func sanitizeURL(inputURL string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid URL: %s", inputURL)
 	}
-
-	// Split the path to extract the portion up to and including "/artifactory/"
 	parts := strings.SplitN(parsedURL.Path, "/artifactory/", 2)
 	if len(parts) == 0 {
 		return "", fmt.Errorf("url does not contain '/artifactory/': %s", inputURL)
 	}
-
-	// Ensure the base URL ends with "/artifactory/"
 	parsedURL.Path = parts[0] + "/artifactory/"
-
-	// Rebuild the URL with the sanitized path
 	return parsedURL.String(), nil
 }
 
