@@ -73,3 +73,57 @@ func TestSetAuthParams(t *testing.T) {
 		}
 	}
 }
+
+func TestSanitizeURL(t *testing.T) {
+	tests := []struct {
+		inputURL string
+		expected string
+		err      error
+	}{
+		{
+			inputURL: "https://artifactory.maryout.com/artifactory/test44",
+			expected: "https://artifactory.maryout.com/artifactory/",
+			err:      nil,
+		},
+		{
+			inputURL: "https://artifactory.maryout.com/artifactory/test/newdir/",
+			expected: "https://artifactory.maryout.com/artifactory/",
+			err:      nil,
+		},
+		{
+			inputURL: "https://opautomates.jfrog.io/artifactory/test55/",
+			expected: "https://opautomates.jfrog.io/artifactory/",
+			err:      nil,
+		},
+		{
+			inputURL: "https://opautomates.jfrog.io/artifactory",
+			expected: "https://opautomates.jfrog.io/artifactory/",
+			err:      nil,
+		},
+		{
+			inputURL: "https://example.com/notartifactory",
+			expected: "",
+			err:      fmt.Errorf("url does not contain '/artifactory': https://example.com/notartifactory"),
+		},
+		{
+			inputURL: "invalid-url",
+			expected: "",
+			err:      fmt.Errorf("invalid URL: invalid-url"),
+		},
+	}
+
+	for _, tc := range tests {
+		result, err := sanitizeURL(tc.inputURL)
+		if err != nil {
+			if tc.err == nil {
+				t.Errorf("Unexpected error: %v", err)
+			} else if err.Error() != tc.err.Error() {
+				t.Errorf("Expected error: %v, Got: %v", tc.err, err)
+			}
+		} else {
+			if result != tc.expected {
+				t.Errorf("For URL %s, Expected: %s, Got: %s", tc.inputURL, tc.expected, result)
+			}
+		}
+	}
+}
