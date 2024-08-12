@@ -120,7 +120,7 @@ func Exec(ctx context.Context, args Args) error {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
 		}
 	} else {
-		if args.TargetProps != "" {
+		if strings.TrimSpace(args.TargetProps) != "" {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", args.TargetProps))
 		}
 		if args.Source == "" {
