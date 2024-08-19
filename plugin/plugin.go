@@ -120,10 +120,10 @@ func Exec(ctx context.Context, args Args) error {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
 		}
 	} else {
-		trimmedTargetProps := strings.TrimSpace(args.TargetProps)
-		if trimmedTargetProps != "" && strings.ToLower(trimmedTargetProps) != "null" {
-			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", args.TargetProps))
-		}
+		filteredTargetProps := filterTargetProps(args.TargetProps)
+		if filteredTargetProps != "" {
+        		cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
+    		}
 		if args.Source == "" {
 			return fmt.Errorf("source file needs to be set")
 		}
@@ -202,6 +202,32 @@ func publishBuildInfo(args Args) error {
 	}
 
 	return nil
+}
+
+// Function to filter TargetProps based on criteria
+func filterTargetProps(rawProps string) string {
+    keyValuePairs := strings.Split(rawProps, ",")
+    validPairs := []string{}
+
+    for _, pair := range keyValuePairs {
+        keyValuePair := strings.SplitN(pair, "=", 2)
+        if len(keyValuePair) != 2 {
+            continue // skip if it's not a valid key-value pair
+        }
+
+        key := strings.TrimSpace(keyValuePair[0])
+        value := strings.TrimSpace(keyValuePair[1])
+
+        // Remove single or double quotes from value
+        trimmedValue := strings.Trim(value, "\"'")
+        
+        // Check value is not empty, not "null", and not just whitespace
+        if trimmedValue != "" && strings.ToLower(trimmedValue) != "null" {
+            validPairs = append(validPairs, key + "=" + value)
+        }
+    }
+
+    return strings.Join(validPairs, ",")
 }
 
 // sanitizeURL trims the URL to include only up to the '/artifactory/' path.
