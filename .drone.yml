@@ -133,6 +133,62 @@ depends_on:
 ---
 kind: pipeline
 type: vm
+name: windows-1809-amd64
+
+pool:
+  use: windows
+
+platform:
+  os: windows
+
+steps:
+  - name: build-push
+    image: golang:1.22.4
+    commands:
+      - 'go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
+    environment:
+      CGO_ENABLED: 0
+    when:
+      event:
+        exclude:
+          - tag
+  - name: build-tag
+    image: golang:1.22.4
+    commands:
+      - 'go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/windows/amd64/plugin'
+    environment:
+      CGO_ENABLED: 0
+    when:
+      event:
+        - tag
+  - name: publish
+    image: plugins/docker
+    settings:
+      auto_tag: true
+      auto_tag_suffix: windows-1809-amd64
+      dockerfile: docker/Dockerfile.windows.amd64.1809
+      password:
+        from_secret: docker_password
+      repo: plugins/artifactory
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+          - pull_request
+
+depends_on:
+  - testing
+
+trigger:
+  ref:
+    - refs/heads/main
+    - refs/tags/**
+    - "refs/pull/**"
+
+---
+kind: pipeline
+type: vm
 name: windows-ltsc2022-amd64
 
 pool:
