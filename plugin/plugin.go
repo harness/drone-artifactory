@@ -61,6 +61,7 @@ func Exec(ctx context.Context, args Args) error {
 
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {
+		log.Printf("setting proxy config for upload")
 		setSecureConnectProxies()
 	}
 
