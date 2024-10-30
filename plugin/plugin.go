@@ -7,6 +7,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -14,6 +15,15 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+)
+
+const (
+	harnessHTTPProxy  = "HARNESS_HTTP_PROXY"
+	harnessHTTPSProxy = "HARNESS_HTTPS_PROXY"
+	harnessNoProxy    = "HARNESS_NO_PROXY"
+	httpProxy         = "HTTP_PROXY"
+	httpsProxy        = "HTTPS_PROXY"
+	noProxy           = "NO_PROXY"
 )
 
 // Args provides plugin execution arguments.
@@ -43,10 +53,18 @@ type Args struct {
 	BuildNumber      string `envconfig:"PLUGIN_BUILD_NUMBER"`
 	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
+	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
+
+	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
+	if enableProxy {
+		log.Printf("setting proxy config for upload")
+		setSecureConnectProxies()
+	}
+
 	// write code here
 	if args.URL == "" {
 		return fmt.Errorf("url needs to be set")
@@ -122,8 +140,8 @@ func Exec(ctx context.Context, args Args) error {
 	} else {
 		filteredTargetProps := filterTargetProps(args.TargetProps)
 		if filteredTargetProps != "" {
-        		cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
-    		}
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
+		}
 		if args.Source == "" {
 			return fmt.Errorf("source file needs to be set")
 		}
@@ -206,28 +224,28 @@ func publishBuildInfo(args Args) error {
 
 // Function to filter TargetProps based on criteria
 func filterTargetProps(rawProps string) string {
-    keyValuePairs := strings.Split(rawProps, ",")
-    validPairs := []string{}
+	keyValuePairs := strings.Split(rawProps, ",")
+	validPairs := []string{}
 
-    for _, pair := range keyValuePairs {
-        keyValuePair := strings.SplitN(pair, "=", 2)
-        if len(keyValuePair) != 2 {
-            continue // skip if it's not a valid key-value pair
-        }
+	for _, pair := range keyValuePairs {
+		keyValuePair := strings.SplitN(pair, "=", 2)
+		if len(keyValuePair) != 2 {
+			continue // skip if it's not a valid key-value pair
+		}
 
-        key := strings.TrimSpace(keyValuePair[0])
-        value := strings.TrimSpace(keyValuePair[1])
+		key := strings.TrimSpace(keyValuePair[0])
+		value := strings.TrimSpace(keyValuePair[1])
 
-        // Remove single or double quotes from value
-        trimmedValue := strings.Trim(value, "\"'")
-        
-        // Check value is not empty, not "null", and not just whitespace
-        if trimmedValue != "" && strings.ToLower(trimmedValue) != "null" {
-            validPairs = append(validPairs, key + "=" + value)
-        }
-    }
+		// Remove single or double quotes from value
+		trimmedValue := strings.Trim(value, "\"'")
 
-    return strings.Join(validPairs, ",")
+		// Check value is not empty, not "null", and not just whitespace
+		if trimmedValue != "" && strings.ToLower(trimmedValue) != "null" {
+			validPairs = append(validPairs, key+"="+value)
+		}
+	}
+
+	return strings.Join(validPairs, ",")
 }
 
 // sanitizeURL trims the URL to include only up to the '/artifactory/' path.
@@ -246,7 +264,7 @@ func sanitizeURL(inputURL string) (string, error) {
 
 	// Always set the path to the first part + "/artifactory/"
 	parsedURL.Path = parts[0] + "/artifactory/"
-	
+
 	return parsedURL.String(), nil
 }
 
@@ -303,4 +321,21 @@ func parseBoolOrDefault(defaultValue bool, s string) (result bool) {
 // tag so that it can be extracted and displayed in the logs.
 func trace(cmd *exec.Cmd) {
 	fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(cmd.Args, " "))
+}
+
+func setSecureConnectProxies() {
+	copyEnvVariableIfExists(harnessHTTPProxy, httpProxy)
+	copyEnvVariableIfExists(harnessHTTPSProxy, httpsProxy)
+	copyEnvVariableIfExists(harnessNoProxy, noProxy)
+}
+
+func copyEnvVariableIfExists(src string, dest string) {
+	srcValue := os.Getenv(src)
+	if srcValue == "" {
+		return
+	}
+	err := os.Setenv(dest, srcValue)
+	if err != nil {
+		log.Printf("Failed to copy env variable from %s to %s with error %v", src, dest, err)
+	}
 }
