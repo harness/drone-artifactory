@@ -56,7 +56,6 @@ type Args struct {
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
 	// Cleanup parameters
 	CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
-	CleanupDelete  bool   `envconfig:"PLUGIN_CLEANUP_DELETE"`
 
 	// Promotion parameters
 	SourceRepo       string `envconfig:"PLUGIN_SOURCE_REPO"`
@@ -123,7 +122,7 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, "promote") // Promote
 		cmdArgs, err = handlePromote(cmdArgs, args)
 	} else if args.CleanupPattern != "" {
-		cmdArgs = append(cmdArgs, "cleanup") // Cleanup
+		cmdArgs = append(cmdArgs, "del") // Cleanup
 		cmdArgs, err = handleCleanup(cmdArgs, args)
 	} else if args.DockerImageName != "" && args.DockerRepo != "" {
 		cmdArgs = append(cmdArgs, "docker-push") // Docker
@@ -337,32 +336,58 @@ func handleBuildInfo(cmdArgs []string, args Args) ([]string, error) {
 
 func handleCleanup(cmdArgs []string, args Args) ([]string, error) {
 	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	cmdArgs, err := setupCommonArgs(cmdArgs, args)
 	if err != nil {
 		return cmdArgs, err
 	}
+
+	// Handle cleanup-specific arguments
 	if args.CleanupPattern != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--pattern='%s'", args.CleanupPattern))
+		// Create cleanup-spec.json with pattern and target
+		spec := fmt.Sprintf(`{
+			"files": [
+				{
+					"pattern": "%s",
+					"delete": true
+				}
+			]
+		}`, args.CleanupPattern)
+
+		// Write spec to file using os.WriteFile (new in Go 1.16)
+		specFilePath := "cleanup-spec.json"
+		err := os.WriteFile(specFilePath, []byte(spec), 0644) // Replacing ioutil.WriteFile
+		if err != nil {
+			return cmdArgs, fmt.Errorf("failed to write spec file: %v", err)
+		}
+
+		// Add the spec file to the command arguments
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", specFilePath))
+		cmdArgs = append(cmdArgs, "--quiet")
 	}
-	if args.CleanupDelete {
-		cmdArgs = append(cmdArgs, "--delete")
-	}
+
 	return cmdArgs, nil
 }
 
 func handleDocker(cmdArgs []string, args Args) ([]string, error) {
+	// Ensure both Docker image name and Docker repo are provided
 	if args.DockerImageName == "" || args.DockerRepo == "" {
-		log.Fatalf("docker image name and docker repo need to be set for docker")
+		log.Fatalf("docker image name and docker repo need to be set for docker push")
 	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--image='%s'", args.DockerImageName))
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--repo='%s'", args.DockerRepo))
-	if args.DockerUsername != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--username='%s'", args.DockerUsername))
+
+	// Set up common arguments
+	cmdArgs, err := setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
 	}
-	if args.DockerPassword != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--password='%s'", args.DockerPassword))
+
+	// Append Docker image tag and target repository
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s %s", args.DockerImageName, args.DockerRepo))
+
+	// Optionally, handle username and password for authentication if provided
+	if args.DockerUsername != "" && args.DockerPassword != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--user=%s:%s", args.DockerUsername, args.DockerPassword))
 	}
+
 	return cmdArgs, nil
 }
 
