@@ -103,34 +103,12 @@ func Exec(ctx context.Context, args Args) error {
 
 	// create pem file
 	if args.PEMFileContents != "" && !insecure {
-		var path string
-		// figure out path to write pem file
-		if args.PEMFilePath == "" {
-			if runtime.GOOS == "windows" {
-				path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
-			} else {
-				path = "/root/.jfrog/security/certs/cert.pem"
-			}
-		} else {
-			path = args.PEMFilePath
-		}
-		fmt.Printf("Creating pem file at %q\n", path)
-		// write pen contents to path
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			// remove filename from path
-			dir := filepath.Dir(path)
-			pemFolderErr := os.MkdirAll(dir, 0700)
-			if pemFolderErr != nil {
-				return fmt.Errorf("error creating pem folder: %s", pemFolderErr)
-			}
-			// write pem contents
-			pemWriteErr := os.WriteFile(path, []byte(args.PEMFileContents), 0600)
-			if pemWriteErr != nil {
-				return fmt.Errorf("error writing pem file: %s", pemWriteErr)
-			}
-			fmt.Printf("Successfully created pem file at %q\n", path)
+		err := createPemFile(args.PEMFileContents, args.PEMFilePath)
+		if err != nil {
+			return err
 		}
 	}
+
 	// Take in spec file or use source/target arguments
 	if args.Spec != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
@@ -246,6 +224,39 @@ func filterTargetProps(rawProps string) string {
 	}
 
 	return strings.Join(validPairs, ",")
+}
+
+// createPemFile writes the PEM file to the specified path
+func createPemFile(pemContents, pemFilePath string) error {
+	var path string
+	// Determine path to write pem file
+	if pemFilePath == "" {
+		if runtime.GOOS == "windows" {
+			path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
+		} else {
+			path = "/root/.jfrog/security/certs/cert.pem"
+		}
+	} else {
+		path = pemFilePath
+	}
+
+	fmt.Printf("Creating pem file at %q\n", path)
+
+	// Create folder and write PEM contents
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		dir := filepath.Dir(path)
+		err := os.MkdirAll(dir, 0700)
+		if err != nil {
+			return fmt.Errorf("failed to create pem folder: %v", err)
+		}
+	}
+
+	err := os.WriteFile(path, []byte(pemContents), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to create pem file %v", err)
+	}
+
+	return nil
 }
 
 // sanitizeURL trims the URL to include only up to the '/artifactory/' path.
