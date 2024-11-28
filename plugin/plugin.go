@@ -119,7 +119,7 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, "build-publish") // Build info
 		cmdArgs, err = handleBuildInfo(cmdArgs, args)
 	} else if args.SourceRepo != "" && args.TargetRepo != "" {
-		cmdArgs = append(cmdArgs, "promote") // Promote
+		cmdArgs = append(cmdArgs, "bpr") // Promote
 		cmdArgs, err = handlePromote(cmdArgs, args)
 	} else if args.CleanupPattern != "" {
 		cmdArgs = append(cmdArgs, "del") // Cleanup
@@ -128,7 +128,7 @@ func Exec(ctx context.Context, args Args) error {
 		cmdArgs = append(cmdArgs, "docker-push") // Docker
 		cmdArgs, err = handleDocker(cmdArgs, args)
 	} else if args.XrayWatchName != "" || (args.XrayBuildName != "" && args.XrayBuildNumber != "") {
-		cmdArgs = append(cmdArgs, "xray-scan") // Xray scan
+		cmdArgs = append(cmdArgs, "xr scan") // Xray scan
 		cmdArgs, err = handleXrayScan(cmdArgs, args)
 	} else if args.DownloadSource != "" && args.DownloadTarget != "" {
 		cmdArgs = append(cmdArgs, "dl") // Download
