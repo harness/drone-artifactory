@@ -87,12 +87,13 @@ type Args struct {
 	GradleOpts  string `envconfig:"PLUGIN_GRADLE_OPTS"`
 
 	// Download parameters
-	DownloadSpec   string `envconfig:"PLUGIN_DOWNLOAD_SPEC"`
+	DownloadSource string `envconfig:"PLUGIN_DOWNLOAD_SOURCE"`
 	DownloadTarget string `envconfig:"PLUGIN_DOWNLOAD_TARGET"`
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
+	var err error
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {
 		log.Printf("setting proxy config for operation")
@@ -105,64 +106,40 @@ func Exec(ctx context.Context, args Args) error {
 
 	cmdArgs := []string{getJfrogBin(), "rt"}
 
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--url %s", args.URL))
-	if args.Retries != 0 {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
-	}
-
-	// Set authentication params
-	cmdArgs, err := setAuthParams(cmdArgs, args)
-	if err != nil {
-		return err
-	}
-
-	// Set insecure flag
-	insecure := parseBoolOrDefault(false, args.Insecure)
-	if insecure {
-		cmdArgs = append(cmdArgs, "--insecure-tls")
-	}
-
-	// create pem file
-	if args.PEMFileContents != "" && !insecure {
-		err := createPemFile(args.PEMFileContents, args.PEMFilePath)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Determine the command based on the provided arguments
 	if args.MavenGoals != "" {
 		cmdArgs = append(cmdArgs, "mvn") // Maven build
-		cmdArgs = handleMaven(cmdArgs, args)
+		cmdArgs, err = handleMaven(cmdArgs, args)
 	} else if args.GradleTasks != "" {
 		cmdArgs = append(cmdArgs, "gradle") // Gradle build
-		cmdArgs = handleGradle(cmdArgs, args)
+		cmdArgs, err = handleGradle(cmdArgs, args)
 	} else if args.Spec != "" || (args.Source != "" && args.Target != "") {
 		cmdArgs = append(cmdArgs, "u") // Upload
 		cmdArgs, err = handleUpload(cmdArgs, args)
-		if err != nil {
-			return err
-		}
 	} else if args.BuildName != "" && args.BuildNumber != "" && args.PublishBuildInfo {
 		cmdArgs = append(cmdArgs, "build-publish") // Build info
-		cmdArgs = handleBuildInfo(cmdArgs, args)
+		cmdArgs, err = handleBuildInfo(cmdArgs, args)
 	} else if args.SourceRepo != "" && args.TargetRepo != "" {
 		cmdArgs = append(cmdArgs, "promote") // Promote
-		cmdArgs = handlePromote(cmdArgs, args)
+		cmdArgs, err = handlePromote(cmdArgs, args)
 	} else if args.CleanupPattern != "" {
 		cmdArgs = append(cmdArgs, "cleanup") // Cleanup
-		cmdArgs = handleCleanup(cmdArgs, args)
+		cmdArgs, err = handleCleanup(cmdArgs, args)
 	} else if args.DockerImageName != "" && args.DockerRepo != "" {
 		cmdArgs = append(cmdArgs, "docker-push") // Docker
-		cmdArgs = handleDocker(cmdArgs, args)
+		cmdArgs, err = handleDocker(cmdArgs, args)
 	} else if args.XrayWatchName != "" || (args.XrayBuildName != "" && args.XrayBuildNumber != "") {
 		cmdArgs = append(cmdArgs, "xray-scan") // Xray scan
-		cmdArgs = handleXrayScan(cmdArgs, args)
-	} else if args.Source != "" && args.Target != "" {
+		cmdArgs, err = handleXrayScan(cmdArgs, args)
+	} else if args.DownloadSource != "" && args.DownloadTarget != "" {
 		cmdArgs = append(cmdArgs, "dl") // Download
-		cmdArgs = handleDownload(cmdArgs, args)
+		cmdArgs, err = handleDownload(cmdArgs, args)
 	} else {
 		return fmt.Errorf("unable to determine the command; insufficient arguments provided")
+	}
+
+	if err != nil {
+		return err
 	}
 
 	cmdStr := strings.Join(cmdArgs, " ")
@@ -191,7 +168,47 @@ func Exec(ctx context.Context, args Args) error {
 	return nil
 }
 
+func setupCommonArgs(cmdArgs []string, args Args) ([]string, error) {
+	// Add URL
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--url=%s", args.URL))
+
+	// Add retries if set
+	if args.Retries != 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
+	}
+
+	// Set authentication parameters
+	var err error
+	cmdArgs, err = setAuthParams(cmdArgs, args)
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle insecure flag
+	insecure := parseBoolOrDefault(false, args.Insecure)
+	if insecure {
+		cmdArgs = append(cmdArgs, "--insecure-tls")
+	}
+
+	// Create PEM file if necessary
+	if args.PEMFileContents != "" && !insecure {
+		err := createPemFile(args.PEMFileContents, args.PEMFilePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return cmdArgs, nil
+}
+
 func handleUpload(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
+
 	flat := parseBoolOrDefault(false, args.Flat)
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
 
@@ -227,7 +244,13 @@ func handleUpload(cmdArgs []string, args Args) ([]string, error) {
 	return cmdArgs, nil
 }
 
-func handleMaven(cmdArgs []string, args Args) []string {
+func handleMaven(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.MavenGoals != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--maven-goals='%s'", args.MavenGoals))
 	}
@@ -240,28 +263,46 @@ func handleMaven(cmdArgs []string, args Args) []string {
 	if args.MavenRepoDeploy != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--repo-deploy='%s'", args.MavenRepoDeploy))
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleGradle(cmdArgs []string, args Args) []string {
+func handleGradle(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.GradleTasks != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-tasks='%s'", args.GradleTasks))
 	}
 	if args.GradleOpts != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-opts='%s'", args.GradleOpts))
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleDownload(cmdArgs []string, args Args) []string {
-	if args.Source == "" || args.Target == "" {
-		log.Fatalf("source and target need to be set for download")
+func handleDownload(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
 	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
-	return cmdArgs
+	if args.DownloadSource == "" || args.DownloadTarget == "" {
+		log.Fatalf("download source and target need to be set for download")
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.DownloadSource), args.DownloadTarget)
+	return cmdArgs, nil
 }
 
-func handlePromote(cmdArgs []string, args Args) []string {
+func handlePromote(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.SourceRepo == "" || args.TargetRepo == "" {
 		log.Fatalf("source repo and target repo need to be set for promote")
 	}
@@ -276,29 +317,41 @@ func handlePromote(cmdArgs []string, args Args) []string {
 	if args.IncludeDeps {
 		cmdArgs = append(cmdArgs, "--include-dependencies")
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleBuildInfo(cmdArgs []string, args Args) []string {
+func handleBuildInfo(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.BuildName == "" || args.BuildNumber == "" {
 		log.Fatalf("build name and build number need to be set for build-info")
 	}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.BuildNumber))
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleCleanup(cmdArgs []string, args Args) []string {
+func handleCleanup(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.CleanupPattern != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--pattern='%s'", args.CleanupPattern))
 	}
 	if args.CleanupDelete {
 		cmdArgs = append(cmdArgs, "--delete")
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleDocker(cmdArgs []string, args Args) []string {
+func handleDocker(cmdArgs []string, args Args) ([]string, error) {
 	if args.DockerImageName == "" || args.DockerRepo == "" {
 		log.Fatalf("docker image name and docker repo need to be set for docker")
 	}
@@ -310,10 +363,16 @@ func handleDocker(cmdArgs []string, args Args) []string {
 	if args.DockerPassword != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--password='%s'", args.DockerPassword))
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
-func handleXrayScan(cmdArgs []string, args Args) []string {
+func handleXrayScan(cmdArgs []string, args Args) ([]string, error) {
+	// Set up common arguments
+	var err error
+	cmdArgs, err = setupCommonArgs(cmdArgs, args)
+	if err != nil {
+		return cmdArgs, err
+	}
 	if args.XrayWatchName != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--watch='%s'", args.XrayWatchName))
 	}
@@ -323,7 +382,7 @@ func handleXrayScan(cmdArgs []string, args Args) []string {
 	if args.XrayBuildNumber != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.XrayBuildNumber))
 	}
-	return cmdArgs
+	return cmdArgs, nil
 }
 
 func publishBuildInfo(args Args) error {
