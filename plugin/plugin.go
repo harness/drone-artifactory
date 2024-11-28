@@ -54,51 +54,72 @@ type Args struct {
 	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
+	// Cleanup parameters
+	CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
+	CleanupDelete  bool   `envconfig:"PLUGIN_CLEANUP_DELETE"`
+
+	// Promotion parameters
+	SourceRepo       string `envconfig:"PLUGIN_SOURCE_REPO"`
+	TargetRepo       string `envconfig:"PLUGIN_TARGET_REPO"`
+	PromotionStatus  string `envconfig:"PLUGIN_PROMOTION_STATUS"`
+	PromotionComment string `envconfig:"PLUGIN_PROMOTION_COMMENT"`
+	IncludeDeps      bool   `envconfig:"PLUGIN_INCLUDE_DEPENDENCIES"`
+
+	// Xray parameters
+	XrayWatchName   string `envconfig:"PLUGIN_XRAY_WATCH_NAME"`
+	XrayBuildName   string `envconfig:"PLUGIN_XRAY_BUILD_NAME"`
+	XrayBuildNumber string `envconfig:"PLUGIN_XRAY_BUILD_NUMBER"`
+
+	// Docker parameters
+	DockerImageName string `envconfig:"PLUGIN_DOCKER_IMAGE_NAME"`
+	DockerRepo      string `envconfig:"PLUGIN_DOCKER_REPO"`
+	DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
+	DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
+
+	// Maven parameters
+	MavenGoals       string `envconfig:"PLUGIN_MAVEN_GOALS"`
+	MavenOpts        string `envconfig:"PLUGIN_MAVEN_OPTS"`
+	MavenRepoResolve string `envconfig:"PLUGIN_MAVEN_REPO_RESOLVE"`
+	MavenRepoDeploy  string `envconfig:"PLUGIN_MAVEN_REPO_DEPLOY"`
+
+	// Gradle parameters
+	GradleTasks string `envconfig:"PLUGIN_GRADLE_TASKS"`
+	GradleOpts  string `envconfig:"PLUGIN_GRADLE_OPTS"`
+
+	// Download parameters
+	DownloadSpec   string `envconfig:"PLUGIN_DOWNLOAD_SPEC"`
+	DownloadTarget string `envconfig:"PLUGIN_DOWNLOAD_TARGET"`
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
-
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {
-		log.Printf("setting proxy config for upload")
+		log.Printf("setting proxy config for operation")
 		setSecureConnectProxies()
 	}
 
-	// write code here
 	if args.URL == "" {
 		return fmt.Errorf("url needs to be set")
 	}
 
-	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	cmdArgs := []string{getJfrogBin(), "rt"}
+
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--url %s", args.URL))
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
 
 	// Set authentication params
-	cmdArgs, error := setAuthParams(cmdArgs, args)
-	if error != nil {
-		return error
+	cmdArgs, err := setAuthParams(cmdArgs, args)
+	if err != nil {
+		return err
 	}
 
-	flat := parseBoolOrDefault(false, args.Flat)
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
-
-	if args.Threads > 0 {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
-	}
 	// Set insecure flag
 	insecure := parseBoolOrDefault(false, args.Insecure)
 	if insecure {
 		cmdArgs = append(cmdArgs, "--insecure-tls")
-	}
-
-	// Add --build-number and --build-name flags if provided
-	if args.BuildNumber != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
-	}
-	if args.BuildName != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
 	}
 
 	// create pem file
@@ -109,7 +130,82 @@ func Exec(ctx context.Context, args Args) error {
 		}
 	}
 
-	// Take in spec file or use source/target arguments
+	// Determine the command based on the provided arguments
+	if args.MavenGoals != "" {
+		cmdArgs = append(cmdArgs, "mvn") // Maven build
+		cmdArgs = handleMaven(cmdArgs, args)
+	} else if args.GradleTasks != "" {
+		cmdArgs = append(cmdArgs, "gradle") // Gradle build
+		cmdArgs = handleGradle(cmdArgs, args)
+	} else if args.Spec != "" || (args.Source != "" && args.Target != "") {
+		cmdArgs = append(cmdArgs, "u") // Upload
+		cmdArgs, err = handleUpload(cmdArgs, args)
+		if err != nil {
+			return err
+		}
+	} else if args.BuildName != "" && args.BuildNumber != "" && args.PublishBuildInfo {
+		cmdArgs = append(cmdArgs, "build-publish") // Build info
+		cmdArgs = handleBuildInfo(cmdArgs, args)
+	} else if args.SourceRepo != "" && args.TargetRepo != "" {
+		cmdArgs = append(cmdArgs, "promote") // Promote
+		cmdArgs = handlePromote(cmdArgs, args)
+	} else if args.CleanupPattern != "" {
+		cmdArgs = append(cmdArgs, "cleanup") // Cleanup
+		cmdArgs = handleCleanup(cmdArgs, args)
+	} else if args.DockerImageName != "" && args.DockerRepo != "" {
+		cmdArgs = append(cmdArgs, "docker-push") // Docker
+		cmdArgs = handleDocker(cmdArgs, args)
+	} else if args.XrayWatchName != "" || (args.XrayBuildName != "" && args.XrayBuildNumber != "") {
+		cmdArgs = append(cmdArgs, "xray-scan") // Xray scan
+		cmdArgs = handleXrayScan(cmdArgs, args)
+	} else if args.Source != "" && args.Target != "" {
+		cmdArgs = append(cmdArgs, "dl") // Download
+		cmdArgs = handleDownload(cmdArgs, args)
+	} else {
+		return fmt.Errorf("unable to determine the command; insufficient arguments provided")
+	}
+
+	cmdStr := strings.Join(cmdArgs, " ")
+
+	shell, shArg := getShell()
+	cmd := exec.Command(shell, shArg, cmdStr)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	trace(cmd)
+
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	// Publish build info if required
+	if args.PublishBuildInfo {
+		if err := publishBuildInfo(args); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleUpload(cmdArgs []string, args Args) ([]string, error) {
+	flat := parseBoolOrDefault(false, args.Flat)
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
+
+	if args.Threads > 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
+	}
+
+	if args.BuildNumber != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
+	}
+	if args.BuildName != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
+	}
+
 	if args.Spec != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
 		if args.SpecVars != "" {
@@ -121,39 +217,113 @@ func Exec(ctx context.Context, args Args) error {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
 		}
 		if args.Source == "" {
-			return fmt.Errorf("source file needs to be set")
+			return cmdArgs, fmt.Errorf("source file needs to be set")
 		}
 		if args.Target == "" {
-			return fmt.Errorf("target path needs to be set")
+			return cmdArgs, fmt.Errorf("target path needs to be set")
 		}
 		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	}
+	return cmdArgs, nil
+}
 
-	cmdStr := strings.Join(cmdArgs[:], " ")
-
-	shell, shArg := getShell()
-
-	cmd := exec.Command(shell, shArg, cmdStr)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	trace(cmd)
-
-	err := cmd.Run()
-	if err != nil {
-		return err
+func handleMaven(cmdArgs []string, args Args) []string {
+	if args.MavenGoals != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--maven-goals='%s'", args.MavenGoals))
 	}
-
-	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
-	if args.PublishBuildInfo {
-		if err := publishBuildInfo(args); err != nil {
-			return err
-		}
+	if args.MavenOpts != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--maven-opts='%s'", args.MavenOpts))
 	}
+	if args.MavenRepoResolve != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--repo-resolve='%s'", args.MavenRepoResolve))
+	}
+	if args.MavenRepoDeploy != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--repo-deploy='%s'", args.MavenRepoDeploy))
+	}
+	return cmdArgs
+}
 
-	return nil
+func handleGradle(cmdArgs []string, args Args) []string {
+	if args.GradleTasks != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-tasks='%s'", args.GradleTasks))
+	}
+	if args.GradleOpts != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-opts='%s'", args.GradleOpts))
+	}
+	return cmdArgs
+}
+
+func handleDownload(cmdArgs []string, args Args) []string {
+	if args.Source == "" || args.Target == "" {
+		log.Fatalf("source and target need to be set for download")
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
+	return cmdArgs
+}
+
+func handlePromote(cmdArgs []string, args Args) []string {
+	if args.SourceRepo == "" || args.TargetRepo == "" {
+		log.Fatalf("source repo and target repo need to be set for promote")
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--source-repo='%s'", args.SourceRepo))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--target-repo='%s'", args.TargetRepo))
+	if args.PromotionStatus != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--status='%s'", args.PromotionStatus))
+	}
+	if args.PromotionComment != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--comment='%s'", args.PromotionComment))
+	}
+	if args.IncludeDeps {
+		cmdArgs = append(cmdArgs, "--include-dependencies")
+	}
+	return cmdArgs
+}
+
+func handleBuildInfo(cmdArgs []string, args Args) []string {
+	if args.BuildName == "" || args.BuildNumber == "" {
+		log.Fatalf("build name and build number need to be set for build-info")
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.BuildNumber))
+	return cmdArgs
+}
+
+func handleCleanup(cmdArgs []string, args Args) []string {
+	if args.CleanupPattern != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--pattern='%s'", args.CleanupPattern))
+	}
+	if args.CleanupDelete {
+		cmdArgs = append(cmdArgs, "--delete")
+	}
+	return cmdArgs
+}
+
+func handleDocker(cmdArgs []string, args Args) []string {
+	if args.DockerImageName == "" || args.DockerRepo == "" {
+		log.Fatalf("docker image name and docker repo need to be set for docker")
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--image='%s'", args.DockerImageName))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--repo='%s'", args.DockerRepo))
+	if args.DockerUsername != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--username='%s'", args.DockerUsername))
+	}
+	if args.DockerPassword != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--password='%s'", args.DockerPassword))
+	}
+	return cmdArgs
+}
+
+func handleXrayScan(cmdArgs []string, args Args) []string {
+	if args.XrayWatchName != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--watch='%s'", args.XrayWatchName))
+	}
+	if args.XrayBuildName != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.XrayBuildName))
+	}
+	if args.XrayBuildNumber != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.XrayBuildNumber))
+	}
+	return cmdArgs
 }
 
 func publishBuildInfo(args Args) error {
