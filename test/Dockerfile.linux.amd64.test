@@ -1,14 +1,19 @@
+# Base alpine image with certificates
 FROM alpine:3.20 as alpine
 RUN apk add -U --no-cache ca-certificates
 
+# Main image
 FROM alpine:3.20
 ENV GODEBUG netdns=go
 ENV CI=true
 
+# Tunable variable for the JRE version (default: openjdk17)
 ARG JRE_VERSION=openjdk17
 
+# Copy CA certificates from the base image
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
+# Install Bash, JRE (default to 17 via ARG), Maven, and other tools
 RUN apk add --no-cache \
     bash \
     "$JRE_VERSION" \
@@ -16,10 +21,10 @@ RUN apk add --no-cache \
     curl \
     && rm -rf /var/cache/apk/*
 
+# Install JFrog CLI
 RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.68.0
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
-ADD release/linux/amd64/plugin /bin/
-
-ENTRYPOINT ["/bin/plugin"]
+# Set default entrypoint to bash
+ENTRYPOINT ["bash"]
