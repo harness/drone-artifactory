@@ -151,8 +151,6 @@ func ExecCommand(args Args, cmdArgs []string) error {
 	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
 	fmt.Println()
 
-	return nil
-
 	cmd := exec.Command(shell, shArg, cmdStr)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
@@ -163,10 +161,10 @@ func ExecCommand(args Args, cmdArgs []string) error {
 
 	err := cmd.Run()
 	if err != nil {
+		fmt.Println(" Error: ", err)
 		return err
 	}
 
-	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
 	if args.PublishBuildInfo {
 		if err := publishBuildInfo(args); err != nil {
 			return err

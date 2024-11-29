@@ -34,7 +34,7 @@ func GetMavenCommandArgs(userName, password, url,
 		"--repo-resolve-snapshots=" + repoResolveSnapshots,
 		"--repo-deploy-releases=" + repoDeployReleases, "--repo-deploy-snapshots=" + repoDeploySnapshots}
 
-	mvnGoalCommandArgs := []string{goals, otherOpts}
+	mvnGoalCommandArgs := []string{"mvn", goals, otherOpts}
 
 	mvnCmdList = append(mvnCmdList, jfrogConfigAddConfigCommandArgs)
 	mvnCmdList = append(mvnCmdList, mvnConfigCommandArgs)
