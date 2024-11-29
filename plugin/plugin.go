@@ -57,6 +57,9 @@ type Args struct {
 	// Cleanup parameters
 	CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
 
+	// PLUGIN_COMMAND
+	Command string `envconfig:"PLUGIN_COMMAND"`
+
 	// Promotion parameters
 	SourceRepo       string `envconfig:"PLUGIN_SOURCE_REPO"`
 	TargetRepo       string `envconfig:"PLUGIN_TARGET_REPO"`
@@ -75,11 +78,13 @@ type Args struct {
 	DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
 	DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
 
-	// Maven parameters
-	MavenGoals       string `envconfig:"PLUGIN_MAVEN_GOALS"`
-	MavenOpts        string `envconfig:"PLUGIN_MAVEN_OPTS"`
-	MavenRepoResolve string `envconfig:"PLUGIN_MAVEN_REPO_RESOLVE"`
-	MavenRepoDeploy  string `envconfig:"PLUGIN_MAVEN_REPO_DEPLOY"`
+	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
+	MvnResolveSnapshots string `envconfig:"PLUGIN_REPO_RESOLVE_SNAPSHOTS"`
+	MvnDeployReleases   string `envconfig:"PLUGIN_REPO_DEPLOY_RELEASES"`
+	MvnDeploySnapshots  string `envconfig:"PLUGIN_REPO_DEPLOY_SNAPSHOTS"`
+	MvnGoals            string `envconfig:"PLUGIN_GOALS"`
+	MvnPomFile          string `envconfig:"PLUGIN_POM_FILE"`
+	MvnOpts             string `envconfig:"PLUGIN_MAVEN_OPTS"`
 
 	// Gradle parameters
 	GradleTasks string `envconfig:"PLUGIN_GRADLE_TASKS"`
@@ -90,60 +95,29 @@ type Args struct {
 	DownloadTarget string `envconfig:"PLUGIN_DOWNLOAD_TARGET"`
 }
 
-// Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
+	var cmdArgs []string
 	var err error
+
+	switch {
+	case len(args.Command) > 0:
+		_, err := handleRtCommand(ctx, args)
+
+		return err
+	default:
+		cmdArgs, err = NativeJfCommandExec(ctx, args)
+	}
+
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {
-		log.Printf("setting proxy config for operation")
+		log.Printf("setting proxy config for upload")
 		setSecureConnectProxies()
 	}
 
-	if args.URL == "" {
-		return fmt.Errorf("url needs to be set")
-	}
-
-	cmdArgs := []string{getJfrogBin(), "rt"}
-
-	// Determine the command based on the provided arguments
-	if args.MavenGoals != "" {
-		cmdArgs = append(cmdArgs, "mvn") // Maven build
-		cmdArgs, err = handleMaven(cmdArgs, args)
-	} else if args.GradleTasks != "" {
-		cmdArgs = append(cmdArgs, "gradle") // Gradle build
-		cmdArgs, err = handleGradle(cmdArgs, args)
-	} else if args.Spec != "" || (args.Source != "" && args.Target != "") {
-		cmdArgs = append(cmdArgs, "u") // Upload
-		cmdArgs, err = handleUpload(cmdArgs, args)
-	} else if args.BuildName != "" && args.BuildNumber != "" && args.PublishBuildInfo {
-		cmdArgs = append(cmdArgs, "build-publish") // Build info
-		cmdArgs, err = handleBuildInfo(cmdArgs, args)
-	} else if args.SourceRepo != "" && args.TargetRepo != "" {
-		cmdArgs = append(cmdArgs, "bpr") // Promote
-		cmdArgs, err = handlePromote(cmdArgs, args)
-	} else if args.CleanupPattern != "" {
-		cmdArgs = append(cmdArgs, "del") // Cleanup
-		cmdArgs, err = handleCleanup(cmdArgs, args)
-	} else if args.DockerImageName != "" && args.DockerRepo != "" {
-		cmdArgs = append(cmdArgs, "docker-push") // Docker
-		cmdArgs, err = handleDocker(cmdArgs, args)
-	} else if args.XrayWatchName != "" || (args.XrayBuildName != "" && args.XrayBuildNumber != "") {
-		cmdArgs = append(cmdArgs, "xr scan") // Xray scan
-		cmdArgs, err = handleXrayScan(cmdArgs, args)
-	} else if args.DownloadSource != "" && args.DownloadTarget != "" {
-		cmdArgs = append(cmdArgs, "dl") // Download
-		cmdArgs, err = handleDownload(cmdArgs, args)
-	} else {
-		return fmt.Errorf("unable to determine the command; insufficient arguments provided")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	cmdStr := strings.Join(cmdArgs, " ")
+	cmdStr := strings.Join(cmdArgs[:], " ")
 
 	shell, shArg := getShell()
+
 	cmd := exec.Command(shell, shArg, cmdStr)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
@@ -157,7 +131,7 @@ func Exec(ctx context.Context, args Args) error {
 		return err
 	}
 
-	// Publish build info if required
+	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
 	if args.PublishBuildInfo {
 		if err := publishBuildInfo(args); err != nil {
 			return err
@@ -165,6 +139,151 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	return nil
+}
+
+func ExecCommand(args Args, cmdArgs []string) error {
+
+	cmdStr := strings.Join(cmdArgs[:], " ")
+
+	shell, shArg := getShell()
+
+	fmt.Println()
+	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
+	fmt.Println()
+
+	return nil
+
+	cmd := exec.Command(shell, shArg, cmdStr)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	trace(cmd)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
+	if args.PublishBuildInfo {
+		if err := publishBuildInfo(args); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
+	commandsList := [][]string{}
+	var err error
+
+	switch args.Command {
+	case MvnCmd:
+		commandsList, err = GetMavenCommandArgs(args.Username, args.Password,
+			args.URL, args.MvnResolveReleases, args.MvnResolveSnapshots,
+			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals, args.MvnOpts)
+	}
+
+	for _, cmd := range commandsList {
+		execArgs := []string{getJfrogBin()}
+		execArgs = append(execArgs, cmd...)
+		ExecCommand(args, execArgs)
+	}
+	fmt.Println()
+
+	return commandsList, err
+}
+
+func NativeJfCommandExec(ctx context.Context, args Args) ([]string, error) {
+
+	if args.URL == "" {
+		return []string{}, fmt.Errorf("url needs to be set")
+	}
+
+	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	if args.Retries != 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
+	}
+
+	// Set authentication params
+	cmdArgs, error := setAuthParams(cmdArgs, args)
+	if error != nil {
+		return []string{}, error
+	}
+
+	flat := parseBoolOrDefault(false, args.Flat)
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
+
+	if args.Threads > 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
+	}
+	// Set insecure flag
+	insecure := parseBoolOrDefault(false, args.Insecure)
+	if insecure {
+		cmdArgs = append(cmdArgs, "--insecure-tls")
+	}
+
+	// Add --build-number and --build-name flags if provided
+	if args.BuildNumber != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
+	}
+	if args.BuildName != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
+	}
+
+	// create pem file
+	if args.PEMFileContents != "" && !insecure {
+		var path string
+		// figure out path to write pem file
+		if args.PEMFilePath == "" {
+			if runtime.GOOS == "windows" {
+				path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
+			} else {
+				path = "/root/.jfrog/security/certs/cert.pem"
+			}
+		} else {
+			path = args.PEMFilePath
+		}
+		fmt.Printf("Creating pem file at %q\n", path)
+		// write pen contents to path
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			// remove filename from path
+			dir := filepath.Dir(path)
+			pemFolderErr := os.MkdirAll(dir, 0700)
+			if pemFolderErr != nil {
+				return []string{}, fmt.Errorf("error creating pem folder: %s", pemFolderErr)
+			}
+			// write pem contents
+			pemWriteErr := os.WriteFile(path, []byte(args.PEMFileContents), 0600)
+			if pemWriteErr != nil {
+				return []string{}, fmt.Errorf("error writing pem file: %s", pemWriteErr)
+			}
+			fmt.Printf("Successfully created pem file at %q\n", path)
+		}
+	}
+	// Take in spec file or use source/target arguments
+	if args.Spec != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
+		if args.SpecVars != "" {
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
+		}
+	} else {
+		filteredTargetProps := filterTargetProps(args.TargetProps)
+		if filteredTargetProps != "" {
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
+		}
+		if args.Source == "" {
+			return []string{}, fmt.Errorf("source file needs to be set")
+		}
+		if args.Target == "" {
+			return []string{}, fmt.Errorf("target path needs to be set")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
+	}
+	return cmdArgs, nil
 }
 
 func setupCommonArgs(cmdArgs []string, args Args) ([]string, error) {
@@ -239,28 +358,6 @@ func handleUpload(cmdArgs []string, args Args) ([]string, error) {
 			return cmdArgs, fmt.Errorf("target path needs to be set")
 		}
 		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
-	}
-	return cmdArgs, nil
-}
-
-func handleMaven(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-	if args.MavenGoals != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--maven-goals='%s'", args.MavenGoals))
-	}
-	if args.MavenOpts != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--maven-opts='%s'", args.MavenOpts))
-	}
-	if args.MavenRepoResolve != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--repo-resolve='%s'", args.MavenRepoResolve))
-	}
-	if args.MavenRepoDeploy != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--repo-deploy='%s'", args.MavenRepoDeploy))
 	}
 	return cmdArgs, nil
 }
