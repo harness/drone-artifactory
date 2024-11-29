@@ -1,3 +1,5 @@
 .env
 release/
-
+target/
+.vscode
+.idea/
