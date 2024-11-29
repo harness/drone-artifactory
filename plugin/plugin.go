@@ -79,10 +79,6 @@ type Args struct {
 	DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
 
 	// Maven parameters
-	/*
-	   Options:
-	     --project             [Optional] JFrog Artifactory project key.
-	*/
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
 	MvnResolveSnapshots string `envconfig:"PLUGIN_REPO_RESOLVE_SNAPSHOTS"`
 	MvnDeployReleases   string `envconfig:"PLUGIN_REPO_DEPLOY_RELEASES"`
@@ -90,11 +86,12 @@ type Args struct {
 	MvnGoals            string `envconfig:"PLUGIN_GOALS"`
 	MvnPomFile          string `envconfig:"PLUGIN_POM_FILE"`
 	ProjectKey          string `envconfig:"PLUGIN_PROJECT_KEY"`
-	OptionalJfrogArgs   string `envconfig:"PLUGIN_OPTIONAL_JFROG_ARGS"`
+	OptionalArgs        string `envconfig:"PLUGIN_OPTIONAL_ARGS"`
 
 	// Gradle parameters
-	GradleTasks string `envconfig:"PLUGIN_GRADLE_TASKS"`
-	GradleOpts  string `envconfig:"PLUGIN_GRADLE_OPTS"`
+	GradleTasks       string `envconfig:"PLUGIN_TASKS"`
+	GradleRepoResolve string `envconfig:"PLUGIN_REPO_RESOLVE"`
+	GradleRepoDeploy  string `envconfig:"PLUGIN_REPO_DEPLOY"`
 
 	// Download parameters
 	DownloadSource string `envconfig:"PLUGIN_DOWNLOAD_SOURCE"`
@@ -190,7 +187,11 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 			args.URL, args.MvnResolveReleases, args.MvnResolveSnapshots,
 			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals,
 			args.BuildName, args.BuildNumber, args.Threads, args.Insecure, args.ProjectKey,
-			args.OptionalJfrogArgs)
+			args.OptionalArgs)
+	case GradleCmd:
+		commandsList, err = GetGradleCommandArgs(args.Username, args.Password, args.URL,
+			args.GradleRepoResolve, args.GradleRepoDeploy, args.GradleTasks, args.BuildName,
+			args.BuildNumber, args.Threads, args.ProjectKey, args.OptionalArgs)
 	}
 
 	for _, cmd := range commandsList {
@@ -365,22 +366,6 @@ func handleUpload(cmdArgs []string, args Args) ([]string, error) {
 			return cmdArgs, fmt.Errorf("target path needs to be set")
 		}
 		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
-	}
-	return cmdArgs, nil
-}
-
-func handleGradle(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-	if args.GradleTasks != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-tasks='%s'", args.GradleTasks))
-	}
-	if args.GradleOpts != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--gradle-opts='%s'", args.GradleOpts))
 	}
 	return cmdArgs, nil
 }

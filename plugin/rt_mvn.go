@@ -26,11 +26,7 @@ func GetMavenCommandArgs(userName, password, url,
 		goals = "clean install"
 	}
 
-	srvConfigStr := "tmpSrvConfig"
-
-	jfrogConfigAddConfigCommandArgs := []string{
-		"config", "add", srvConfigStr, "--url=" + url,
-		"--user=" + userName, "--password=" + password, "--interactive=false"}
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(userName, password, url)
 
 	mvnConfigCommandArgs := []string{"mvn-config", "--global", "--repo-resolve-releases=" + repoResolveReleases,
 		"--repo-resolve-snapshots=" + repoResolveSnapshots,
@@ -63,9 +59,48 @@ func GetMavenCommandArgs(userName, password, url,
 	mvnCmdList = append(mvnCmdList, mvnGoalCommandArgs)
 
 	return mvnCmdList, nil
+}
 
+func GetGradleCommandArgs(userName, password, url, repoResolve, repoDeploy,
+	gradleTasks, buildName, buildNumber string,
+	numThreads int, projectKey, otherOpts string) ([][]string, error) {
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(userName, password, url)
+
+	gradleConfigCommandArgs := []string{"gradle-config",
+		"--repo-resolve=" + repoResolve, "--repo-deploy=" + repoDeploy}
+	gradleTaskCommandArgs := []string{"gradle", gradleTasks}
+
+	if len(buildName) > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--build-name="+buildName)
+	}
+	if len(buildNumber) > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--build-number="+buildNumber)
+	}
+	if numThreads > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, fmt.Sprintf("--threads=%d", numThreads))
+	}
+	if len(projectKey) > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--project="+projectKey)
+	}
+	gradleTaskCommandArgs = append(gradleTaskCommandArgs, otherOpts)
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, gradleConfigCommandArgs)
+	cmdList = append(cmdList, gradleTaskCommandArgs)
+
+	return cmdList, nil
+}
+
+func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
+	srvConfigStr := "tmpSrvConfig"
+	return []string{"config", "add", srvConfigStr, "--url=" + url,
+		"--user=" + userName, "--password=" + password, "--interactive=false"}
 }
 
 const (
-	MvnCmd = "mvn"
+	MvnCmd    = "mvn"
+	GradleCmd = "gradle"
 )
