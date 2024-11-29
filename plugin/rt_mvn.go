@@ -5,7 +5,7 @@ import "fmt"
 func GetMavenCommandArgs(userName, password, url,
 	repoResolveReleases, repoResolveSnapshots, repoDeployReleases, repoDeploySnapshots,
 	pomFile, goals, buildName, buildNumber string, numThreads int,
-	insecureTls string,
+	insecureTls string, projectKey string,
 	otherOpts string) ([][]string, error) {
 
 	var mvnCmdList [][]string
@@ -53,7 +53,9 @@ func GetMavenCommandArgs(userName, password, url,
 	if len(insecureTls) > 0 {
 		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--insecure-tls="+insecureTls)
 	}
-
+	if len(projectKey) > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--project="+projectKey)
+	}
 	mvnGoalCommandArgs = append(mvnGoalCommandArgs, otherOpts)
 
 	mvnCmdList = append(mvnCmdList, jfrogConfigAddConfigCommandArgs)

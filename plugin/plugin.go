@@ -81,10 +81,7 @@ type Args struct {
 	// Maven parameters
 	/*
 	   Options:
-	     --detailed-summary    [Default: false] Set to true to include a list of the affected files in the command summary.
-	     --format              [Default: table] Defines the output format of the command. Acceptable values are: table, json, simple-json and sarif. Note: the json format doesn't include information about scans that are included as part of the Advanced Security package.
 	     --project             [Optional] JFrog Artifactory project key.
-	     --scan                [Default: false] Set if you'd like all files to be scanned by Xray on the local file system prior to the upload, and skip the upload if any of the files are found vulnerable.
 	*/
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
 	MvnResolveSnapshots string `envconfig:"PLUGIN_REPO_RESOLVE_SNAPSHOTS"`
@@ -192,7 +189,7 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetMavenCommandArgs(args.Username, args.Password,
 			args.URL, args.MvnResolveReleases, args.MvnResolveSnapshots,
 			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals,
-			args.BuildName, args.BuildNumber, args.Threads, args.Insecure,
+			args.BuildName, args.BuildNumber, args.Threads, args.Insecure, args.ProjectKey,
 			args.OptionalJfrogArgs)
 	}
 
@@ -200,6 +197,7 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
 		ExecCommand(args, execArgs)
+		fmt.Println()
 	}
 	fmt.Println()
 
