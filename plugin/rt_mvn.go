@@ -4,7 +4,9 @@ import "fmt"
 
 func GetMavenCommandArgs(userName, password, url,
 	repoResolveReleases, repoResolveSnapshots, repoDeployReleases, repoDeploySnapshots,
-	pomFile, goals, otherOpts string) ([][]string, error) {
+	pomFile, goals, buildName, buildNumber string, numThreads int,
+	insecureTls string,
+	otherOpts string) ([][]string, error) {
 
 	var mvnCmdList [][]string
 
@@ -34,7 +36,25 @@ func GetMavenCommandArgs(userName, password, url,
 		"--repo-resolve-snapshots=" + repoResolveSnapshots,
 		"--repo-deploy-releases=" + repoDeployReleases, "--repo-deploy-snapshots=" + repoDeploySnapshots}
 
-	mvnGoalCommandArgs := []string{"mvn", goals, otherOpts}
+	mvnGoalCommandArgs := []string{"mvn", goals}
+
+	if len(pomFile) > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "-file="+pomFile)
+	}
+	if len(buildName) > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--build-name="+buildName)
+	}
+	if len(buildNumber) > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--build-number="+buildNumber)
+	}
+	if numThreads > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, fmt.Sprintf("--threads=%d", numThreads))
+	}
+	if len(insecureTls) > 0 {
+		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--insecure-tls="+insecureTls)
+	}
+
+	mvnGoalCommandArgs = append(mvnGoalCommandArgs, otherOpts)
 
 	mvnCmdList = append(mvnCmdList, jfrogConfigAddConfigCommandArgs)
 	mvnCmdList = append(mvnCmdList, mvnConfigCommandArgs)

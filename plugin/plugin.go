@@ -78,13 +78,22 @@ type Args struct {
 	DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
 	DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
 
+	// Maven parameters
+	/*
+	   Options:
+	     --detailed-summary    [Default: false] Set to true to include a list of the affected files in the command summary.
+	     --format              [Default: table] Defines the output format of the command. Acceptable values are: table, json, simple-json and sarif. Note: the json format doesn't include information about scans that are included as part of the Advanced Security package.
+	     --project             [Optional] JFrog Artifactory project key.
+	     --scan                [Default: false] Set if you'd like all files to be scanned by Xray on the local file system prior to the upload, and skip the upload if any of the files are found vulnerable.
+	*/
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
 	MvnResolveSnapshots string `envconfig:"PLUGIN_REPO_RESOLVE_SNAPSHOTS"`
 	MvnDeployReleases   string `envconfig:"PLUGIN_REPO_DEPLOY_RELEASES"`
 	MvnDeploySnapshots  string `envconfig:"PLUGIN_REPO_DEPLOY_SNAPSHOTS"`
 	MvnGoals            string `envconfig:"PLUGIN_GOALS"`
 	MvnPomFile          string `envconfig:"PLUGIN_POM_FILE"`
-	MvnOpts             string `envconfig:"PLUGIN_MAVEN_OPTS"`
+	ProjectKey          string `envconfig:"PLUGIN_PROJECT_KEY"`
+	OptionalJfrogArgs   string `envconfig:"PLUGIN_OPTIONAL_JFROG_ARGS"`
 
 	// Gradle parameters
 	GradleTasks string `envconfig:"PLUGIN_GRADLE_TASKS"`
@@ -182,7 +191,9 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 	case MvnCmd:
 		commandsList, err = GetMavenCommandArgs(args.Username, args.Password,
 			args.URL, args.MvnResolveReleases, args.MvnResolveSnapshots,
-			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals, args.MvnOpts)
+			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals,
+			args.BuildName, args.BuildNumber, args.Threads, args.Insecure,
+			args.OptionalJfrogArgs)
 	}
 
 	for _, cmd := range commandsList {
