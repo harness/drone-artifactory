@@ -6,63 +6,53 @@ import (
 	"sync"
 )
 
-func GetMavenCommandArgs(userName, password, url,
-	repoResolveReleases, repoResolveSnapshots, repoDeployReleases, repoDeploySnapshots,
-	pomFile, goals, buildName, buildNumber string, numThreads int,
-	insecureTls string, projectKey string,
-	otherOpts string) ([][]string, error) {
+var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
 
-	var mvnCmdList [][]string
+var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+}
 
-	if len(userName) == 0 || len(password) == 0 {
-		return mvnCmdList, fmt.Errorf("missing username or password")
+func GetMavenCommandArgs(args Args) ([][]string, error) {
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+
+	mvnConfigCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
 	}
 
-	if len(url) == 0 {
-		return mvnCmdList, fmt.Errorf("missing url")
+	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
+	err = PopulateArgs(&mvnRunCommandArgs, &args, MavenRunCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
 	}
 
-	if len(pomFile) == 0 {
-		pomFile = "pom.xml"
-	}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, mvnConfigCommandArgs)
+	cmdList = append(cmdList, mvnRunCommandArgs)
 
-	if len(goals) == 0 {
-		goals = "clean install"
-	}
-
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(userName, password, url)
-
-	mvnConfigCommandArgs := []string{"mvn-config", "--global", "--repo-resolve-releases=" + repoResolveReleases,
-		"--repo-resolve-snapshots=" + repoResolveSnapshots,
-		"--repo-deploy-releases=" + repoDeployReleases, "--repo-deploy-snapshots=" + repoDeploySnapshots}
-
-	mvnGoalCommandArgs := []string{"mvn", goals}
-
-	if len(pomFile) > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "-file="+pomFile)
-	}
-	if len(buildName) > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--build-name="+buildName)
-	}
-	if len(buildNumber) > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--build-number="+buildNumber)
-	}
-	if numThreads > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, fmt.Sprintf("--threads=%d", numThreads))
-	}
-	if len(insecureTls) > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--insecure-tls="+insecureTls)
-	}
-	if len(projectKey) > 0 {
-		mvnGoalCommandArgs = append(mvnGoalCommandArgs, "--project="+projectKey)
-	}
-	mvnGoalCommandArgs = append(mvnGoalCommandArgs, otherOpts)
-
-	mvnCmdList = append(mvnCmdList, jfrogConfigAddConfigCommandArgs)
-	mvnCmdList = append(mvnCmdList, mvnConfigCommandArgs)
-	mvnCmdList = append(mvnCmdList, mvnGoalCommandArgs)
-
-	return mvnCmdList, nil
+	return cmdList, nil
 }
 
 func GetGradleCommandArgs(userName, password, url, repoResolve, repoDeploy,
@@ -157,6 +147,70 @@ func GetUploadCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+var DownloadCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--access-token=", "PLUGIN_ACCESS_TOKEN", false, false, nil, nil},
+	{"--archive-entries=", "PLUGIN_ARCHIVE_ENTRIES", false, false, nil, nil},
+	{"--build=", "PLUGIN_BUILD", false, false, nil, nil},
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--bundle=", "PLUGIN_BUNDLE", false, false, nil, nil},
+	{"--bypass-archive-inspection=", "PLUGIN_BYPASS_ARCHIVE_INSPECTION", false, false, nil, nil},
+	{"--client-cert-key-path=", "PLUGIN_CLIENT_CERT_KEY_PATH", false, false, nil, nil},
+	{"--client-cert-path=", "PLUGIN_CLIENT_CERT_PATH", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--dry-run=", "PLUGIN_DRY_RUN", false, false, nil, nil},
+	{"--exclude-artifacts=", "PLUGIN_EXCLUDE_ARTIFACTS", false, false, nil, nil},
+	{"--exclude-props=", "PLUGIN_EXCLUDE_PROPS", false, false, nil, nil},
+	{"--exclusions=", "PLUGIN_EXCLUSIONS", false, false, nil, nil},
+	{"--explode=", "PLUGIN_EXPLODE", false, false, nil, nil},
+	{"--fail-no-op=", "PLUGIN_FAIL_NO_OP", false, false, nil, nil},
+	{"--flat=", "PLUGIN_FLAT", false, false, nil, nil},
+	{"--gpg-key=", "PLUGIN_GPG_KEY", false, false, nil, nil},
+	{"--include-deps=", "PLUGIN_INCLUDE_DEPS", false, false, nil, nil},
+	{"--include-dirs=", "PLUGIN_INCLUDE_DIRS", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--limit=", "PLUGIN_LIMIT", false, false, nil, nil},
+	{"--min-split=", "PLUGIN_MIN_SPLIT", false, false, nil, nil},
+	{"--module=", "PLUGIN_MODULE", false, false, nil, nil},
+	{"--offset=", "PLUGIN_OFFSET", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--props=", "PLUGIN_PROPS", false, false, nil, nil},
+	{"--quiet=", "PLUGIN_QUIET", false, false, nil, nil},
+	{"--recursive=", "PLUGIN_RECURSIVE", false, false, nil, nil},
+	{"--retries=", "PLUGIN_RETRIES", false, false, nil, nil},
+	{"--retry-wait-time=", "PLUGIN_RETRY_WAIT_TIME", false, false, nil, nil},
+	{"--server-id=", "PLUGIN_SERVER_ID", false, false, nil, nil},
+	{"--skip-checksum=", "PLUGIN_SKIP_CHECKSUM", false, false, nil, nil},
+	{"--sort-by=", "PLUGIN_SORT_BY", false, false, nil, nil},
+	{"--sort-order=", "PLUGIN_SORT_ORDER", false, false, nil, nil},
+	{"--spec=", "PLUGIN_SPEC", false, false, nil, nil},
+	{"--spec-vars=", "PLUGIN_SPEC_VARS", false, false, nil, nil},
+	{"--split-count=", "PLUGIN_SPLIT_COUNT", false, false, nil, nil},
+	{"--ssh-key-path=", "PLUGIN_SSH_KEY_PATH", false, false, nil, nil},
+	{"--ssh-passphrase=", "PLUGIN_SSH_PASSPHRASE", false, false, nil, nil},
+	{"--sync-deletes=", "PLUGIN_SYNC_DELETES", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+	{"--validate-symlinks=", "PLUGIN_VALIDATE_SYMLINKS", false, false, nil, nil},
+}
+
+func GetDownloadCommandArgs(args Args) ([][]string, error) {
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+
+	downloadCommandArgs := []string{"rt", "download", args.Target, args.Source}
+	err := PopulateArgs(&downloadCommandArgs, &args, DownloadCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, downloadCommandArgs)
+
+	return cmdList, nil
+}
+
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
 	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
 
@@ -218,9 +272,11 @@ func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
 }
 
 const (
-	MvnCmd    = "mvn"
-	GradleCmd = "gradle"
-	UploadCmd = "upload"
+	MvnCmd      = "mvn"
+	MvnConfig   = "mvn-config"
+	GradleCmd   = "gradle"
+	UploadCmd   = "upload"
+	DownloadCmd = "download"
 )
 
 var tagFieldCache sync.Map

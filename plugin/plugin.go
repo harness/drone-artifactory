@@ -122,7 +122,6 @@ type Args struct {
 	ExcludeProps            string `envconfig:"PLUGIN_EXCLUDE_PROPS"`
 	GpgKey                  string `envconfig:"PLUGIN_GPG_KEY"`
 	IncludeDeps             string `envconfig:"PLUGIN_INCLUDE_DEPS"`
-	InsecureTls             string `envconfig:"PLUGIN_INSECURE_TLS"`
 	Limit                   string `envconfig:"PLUGIN_LIMIT"`
 	Offset                  string `envconfig:"PLUGIN_OFFSET"`
 	Props                   string `envconfig:"PLUGIN_PROPS"`
@@ -131,11 +130,6 @@ type Args struct {
 	SortOrder               string `envconfig:"PLUGIN_SORT_ORDER"`
 	ValidateSymlinks        string `envconfig:"PLUGIN_VALIDATE_SYMLINKS"`
 }
-
-const (
-	PluginRepoResolveReleases  = "PLUGIN_REPO_RESOLVE_RELEASES"
-	PluginRepoResolveSnapshots = "PLUGIN_REPO_RESOLVE_SNAPSHOTS"
-)
 
 func Exec(ctx context.Context, args Args) error {
 	var cmdArgs []string
@@ -222,17 +216,15 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 
 	switch args.Command {
 	case MvnCmd:
-		commandsList, err = GetMavenCommandArgs(args.Username, args.Password,
-			args.URL, args.MvnResolveReleases, args.MvnResolveSnapshots,
-			args.MvnDeployReleases, args.MvnDeploySnapshots, args.MvnPomFile, args.MvnGoals,
-			args.BuildName, args.BuildNumber, args.Threads, args.Insecure, args.ProjectKey,
-			args.OptionalArgs)
+		commandsList, err = GetMavenCommandArgs(args)
 	case GradleCmd:
 		commandsList, err = GetGradleCommandArgs(args.Username, args.Password, args.URL,
 			args.GradleRepoResolve, args.GradleRepoDeploy, args.GradleTasks, args.BuildName,
 			args.BuildNumber, args.Threads, args.ProjectKey, args.OptionalArgs)
 	case UploadCmd:
 		commandsList, err = GetUploadCommandArgs(args)
+	case DownloadCmd:
+		commandsList, err = GetDownloadCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
@@ -370,65 +362,6 @@ func setupCommonArgs(cmdArgs []string, args Args) ([]string, error) {
 
 	return cmdArgs, nil
 }
-
-func handleUpload(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-
-	flat := parseBoolOrDefault(false, args.Flat)
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--flat=%s", strconv.FormatBool(flat)))
-
-	if args.Threads > 0 {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--threads=%d", args.Threads))
-	}
-
-	if args.BuildNumber != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number=%s", args.BuildNumber))
-	}
-	if args.BuildName != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
-	}
-
-	if args.Spec != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
-		if args.SpecVars != "" {
-			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec-vars='%s'", args.SpecVars))
-		}
-	} else {
-		filteredTargetProps := filterTargetProps(args.TargetProps)
-		if filteredTargetProps != "" {
-			cmdArgs = append(cmdArgs, fmt.Sprintf("--target-props='%s'", filteredTargetProps))
-		}
-		if args.Source == "" {
-			return cmdArgs, fmt.Errorf("source file needs to be set")
-		}
-		if args.Target == "" {
-			return cmdArgs, fmt.Errorf("target path needs to be set")
-		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
-	}
-	return cmdArgs, nil
-}
-
-/*
-	func handleDownload(cmdArgs []string, args Args) ([]string, error) {
-		// Set up common arguments
-		var err error
-		cmdArgs, err = setupCommonArgs(cmdArgs, args)
-		if err != nil {
-			return cmdArgs, err
-		}
-		if args.DownloadSource == "" || args.DownloadTarget == "" {
-			log.Fatalf("download source and target need to be set for download")
-		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.DownloadSource), args.DownloadTarget)
-		return cmdArgs, nil
-	}
-*/
 
 /*
 func handlePromote(cmdArgs []string, args Args) ([]string, error) {
