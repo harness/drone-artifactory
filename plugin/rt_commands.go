@@ -55,31 +55,73 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-func GetGradleCommandArgs(userName, password, url, repoResolve, repoDeploy,
-	gradleTasks, buildName, buildNumber string,
-	numThreads int, projectKey, otherOpts string) ([][]string, error) {
+/*
+Options:
+  --deploy-ivy-desc          [Default: true] Set to false if you do not wish to deploy Ivy descriptors.
+  --deploy-maven-desc        [Default: true] Set to false if you do not wish to deploy Maven descriptors.
+  --global                   [Default: false] Set to true if you'd like the configuration to be global (for all projects). Specific projects can override the global configuration.
+  --ivy-artifacts-pattern    [Default: '[organization]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]' Set the deployed Ivy artifacts pattern.
+  --ivy-desc-pattern         [Default: '[organization]/[module]/ivy-[revision].xml' Set the deployed Ivy descriptor pattern.
+  --repo-deploy              [Optional] Repository for artifacts deployment.
+  --repo-resolve             [Optional] Repository for dependencies resolution.
+  --server-id-deploy         [Optional] Artifactory server ID for deployment. The server should be configured using the 'jfrog c add' command.
+  --server-id-resolve        [Optional] Artifactory server ID for resolution. The server should be configured using the 'jfrog c add' command.
+  --use-wrapper              [Default: false] Set to true if you wish to use the wrapper.
+  --uses-plugin              [Default: false] Set to true if the Gradle Artifactory Plugin is already applied in the build script.
+*/
+
+var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--deploy-ivy-desc=", "PLUGIN_DEPLOY_IVY_DESC", false, false, nil, nil},
+	{"--deploy-maven-desc=", "PLUGIN_DEPLOY_MAVEN_DESC", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--ivy-artifacts-pattern=", "PLUGIN_IVY_ARTIFACTS_PATTERN", false, false, nil, nil},
+	{"--ivy-desc-pattern=", "PLUGIN_IVY_DESC_PATTERN", false, false, nil, nil},
+	{"--repo-deploy=", "PLUGIN_REPO_DEPLOY", false, false, nil, nil},
+	{"--repo-resolve=", "PLUGIN_REPO_RESOLVE", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+	{"--uses-plugin=", "PLUGIN_USES_PLUGIN", false, false, nil, nil},
+}
+
+/*
+Options:
+
+	--build-name          [Optional] Providing this option will collect and record build info for this build name. Build number option is mandatory when this option is provided.
+	--build-number        [Optional] Providing this option will collect and record build info for this build number. Build name option is mandatory when this option is provided.
+	--detailed-summary    [Default: false] Set to true to include a list of the affected files in the command summary.
+	--format              [Default: table] Defines the output format of the command. Acceptable values are: table, json, simple-json and sarif. Note: the json format doesn't include information about scans that are included as part of the Advanced Security package.
+	--project             [Optional] JFrog Artifactory project key.
+	--scan                [Default: false] Set if you'd like all files to be scanned by Xray on the local file system prior to the upload, and skip the upload if any of the files are found vulnerable.
+	--threads             [Default: 3] Number of threads for uploading build artifacts.
+*/
+var GradleRunJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+func GetGradleCommandArgs(args Args) ([][]string, error) {
 
 	var cmdList [][]string
 
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(userName, password, url)
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
 
-	gradleConfigCommandArgs := []string{"gradle-config",
-		"--repo-resolve=" + repoResolve, "--repo-deploy=" + repoDeploy}
-	gradleTaskCommandArgs := []string{"gradle", gradleTasks}
+	gradleConfigCommandArgs := []string{GradleConfig}
+	err := PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
 
-	if len(buildName) > 0 {
-		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--build-name="+buildName)
+	gradleTaskCommandArgs := []string{GradleCmd, args.GradleTasks}
+	err = PopulateArgs(&gradleTaskCommandArgs, &args, GradleRunJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
 	}
-	if len(buildNumber) > 0 {
-		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--build-number="+buildNumber)
-	}
-	if numThreads > 0 {
-		gradleTaskCommandArgs = append(gradleTaskCommandArgs, fmt.Sprintf("--threads=%d", numThreads))
-	}
-	if len(projectKey) > 0 {
-		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "--project="+projectKey)
-	}
-	gradleTaskCommandArgs = append(gradleTaskCommandArgs, otherOpts)
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, gradleConfigCommandArgs)
@@ -271,14 +313,6 @@ func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
 		"--user=" + userName, "--password=" + password, "--interactive=false"}
 }
 
-const (
-	MvnCmd      = "mvn"
-	MvnConfig   = "mvn-config"
-	GradleCmd   = "gradle"
-	UploadCmd   = "upload"
-	DownloadCmd = "download"
-)
-
 var tagFieldCache sync.Map
 
 func precomputeTagMapping(structType reflect.Type) map[string]int {
@@ -333,3 +367,12 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 
 	return nil, fmt.Errorf("field with tag '%s' in struct '%s' cannot be addressed", argJsonTag, t.Name())
 }
+
+const (
+	MvnCmd       = "mvn"
+	MvnConfig    = "mvn-config"
+	GradleCmd    = "gradle"
+	GradleConfig = "gradle-config"
+	UploadCmd    = "upload"
+	DownloadCmd  = "download"
+)
