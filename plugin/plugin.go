@@ -60,13 +60,6 @@ type Args struct {
 	// PLUGIN_COMMAND
 	Command string `envconfig:"PLUGIN_COMMAND"`
 
-	// Promotion parameters
-	SourceRepo       string `envconfig:"PLUGIN_SOURCE_REPO"`
-	TargetRepo       string `envconfig:"PLUGIN_TARGET_REPO"`
-	PromotionStatus  string `envconfig:"PLUGIN_PROMOTION_STATUS"`
-	PromotionComment string `envconfig:"PLUGIN_PROMOTION_COMMENT"`
-	IncludeDeps      bool   `envconfig:"PLUGIN_INCLUDE_DEPENDENCIES"`
-
 	// Xray parameters
 	XrayWatchName   string `envconfig:"PLUGIN_XRAY_WATCH_NAME"`
 	XrayBuildName   string `envconfig:"PLUGIN_XRAY_BUILD_NAME"`
@@ -93,10 +86,56 @@ type Args struct {
 	GradleRepoResolve string `envconfig:"PLUGIN_REPO_RESOLVE"`
 	GradleRepoDeploy  string `envconfig:"PLUGIN_REPO_DEPLOY"`
 
-	// Download parameters
-	DownloadSource string `envconfig:"PLUGIN_DOWNLOAD_SOURCE"`
-	DownloadTarget string `envconfig:"PLUGIN_DOWNLOAD_TARGET"`
+	// UploadParams
+	Ant               string `envconfig:"PLUGIN_ANT"`
+	Archive           string `envconfig:"PLUGIN_ARCHIVE"`
+	ChunkSize         string `envconfig:"PLUGIN_CHUNK_SIZE"`
+	ClientCertKeyPath string `envconfig:"PLUGIN_CLIENT_CERT_KEY_PATH"`
+	ClientCertPath    string `envconfig:"PLUGIN_CLIENT_CERT_PATH"`
+	Deb               string `envconfig:"PLUGIN_DEB"`
+	DetailedSummary   string `envconfig:"PLUGIN_DETAILED_SUMMARY"`
+	DryRun            string `envconfig:"PLUGIN_DRY_RUN"`
+	Exclusions        string `envconfig:"PLUGIN_EXCLUSIONS"`
+	Explode           string `envconfig:"PLUGIN_EXPLODE"`
+	FailNoOp          string `envconfig:"PLUGIN_FAIL_NO_OP"`
+	IncludeDirs       string `envconfig:"PLUGIN_INCLUDE_DIRS"`
+	MinSplit          string `envconfig:"PLUGIN_MIN_SPLIT"`
+	Module            string `envconfig:"PLUGIN_MODULE"`
+	Project           string `envconfig:"PLUGIN_PROJECT"`
+	Quiet             string `envconfig:"PLUGIN_QUIET"`
+	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
+	Regexp            string `envconfig:"PLUGIN_REGEXP"`
+	RetryWaitTime     string `envconfig:"PLUGIN_RETRY_WAIT_TIME"`
+	ServerId          string `envconfig:"PLUGIN_SERVER_ID"`
+	SplitCount        string `envconfig:"PLUGIN_SPLIT_COUNT"`
+	SSHKeyPath        string `envconfig:"PLUGIN_SSH_KEY_PATH"`
+	SSHPassphrase     string `envconfig:"PLUGIN_SSH_PASSPHRASE"`
+	Symlinks          string `envconfig:"PLUGIN_SYMLINKS"`
+	SyncDeletes       string `envconfig:"PLUGIN_SYNC_DELETES"`
+
+	// DownloadParams
+	ArchiveEntries          string `envconfig:"PLUGIN_ARCHIVE_ENTRIES"`
+	Build                   string `envconfig:"PLUGIN_BUILD"`
+	Bundle                  string `envconfig:"PLUGIN_BUNDLE"`
+	BypassArchiveInspection string `envconfig:"PLUGIN_BYPASS_ARCHIVE_INSPECTION"`
+	ExcludeArtifacts        string `envconfig:"PLUGIN_EXCLUDE_ARTIFACTS"`
+	ExcludeProps            string `envconfig:"PLUGIN_EXCLUDE_PROPS"`
+	GpgKey                  string `envconfig:"PLUGIN_GPG_KEY"`
+	IncludeDeps             string `envconfig:"PLUGIN_INCLUDE_DEPS"`
+	InsecureTls             string `envconfig:"PLUGIN_INSECURE_TLS"`
+	Limit                   string `envconfig:"PLUGIN_LIMIT"`
+	Offset                  string `envconfig:"PLUGIN_OFFSET"`
+	Props                   string `envconfig:"PLUGIN_PROPS"`
+	SkipChecksum            string `envconfig:"PLUGIN_SKIP_CHECKSUM"`
+	SortBy                  string `envconfig:"PLUGIN_SORT_BY"`
+	SortOrder               string `envconfig:"PLUGIN_SORT_ORDER"`
+	ValidateSymlinks        string `envconfig:"PLUGIN_VALIDATE_SYMLINKS"`
 }
+
+const (
+	PluginRepoResolveReleases  = "PLUGIN_REPO_RESOLVE_RELEASES"
+	PluginRepoResolveSnapshots = "PLUGIN_REPO_RESOLVE_SNAPSHOTS"
+)
 
 func Exec(ctx context.Context, args Args) error {
 	var cmdArgs []string
@@ -192,12 +231,17 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetGradleCommandArgs(args.Username, args.Password, args.URL,
 			args.GradleRepoResolve, args.GradleRepoDeploy, args.GradleTasks, args.BuildName,
 			args.BuildNumber, args.Threads, args.ProjectKey, args.OptionalArgs)
+	case UploadCmd:
+		commandsList, err = GetUploadCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
-		ExecCommand(args, execArgs)
+		err := ExecCommand(args, execArgs)
+		if err != nil {
+			return commandsList, err
+		}
 		fmt.Println()
 	}
 	fmt.Println()
@@ -370,20 +414,23 @@ func handleUpload(cmdArgs []string, args Args) ([]string, error) {
 	return cmdArgs, nil
 }
 
-func handleDownload(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
+/*
+	func handleDownload(cmdArgs []string, args Args) ([]string, error) {
+		// Set up common arguments
+		var err error
+		cmdArgs, err = setupCommonArgs(cmdArgs, args)
+		if err != nil {
+			return cmdArgs, err
+		}
+		if args.DownloadSource == "" || args.DownloadTarget == "" {
+			log.Fatalf("download source and target need to be set for download")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.DownloadSource), args.DownloadTarget)
+		return cmdArgs, nil
 	}
-	if args.DownloadSource == "" || args.DownloadTarget == "" {
-		log.Fatalf("download source and target need to be set for download")
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.DownloadSource), args.DownloadTarget)
-	return cmdArgs, nil
-}
+*/
 
+/*
 func handlePromote(cmdArgs []string, args Args) ([]string, error) {
 	// Set up common arguments
 	var err error
@@ -407,6 +454,7 @@ func handlePromote(cmdArgs []string, args Args) ([]string, error) {
 	}
 	return cmdArgs, nil
 }
+*/
 
 func handleBuildInfo(cmdArgs []string, args Args) ([]string, error) {
 	// Set up common arguments
