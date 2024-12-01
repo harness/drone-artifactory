@@ -82,23 +82,6 @@ type Args struct {
 	OptionalArgs        string `envconfig:"PLUGIN_OPTIONAL_ARGS"`
 
 	// Gradle parameters
-
-	/*
-		Options:
-		  --deploy-ivy-desc          [Default: true] Set to false if you do not wish to deploy Ivy descriptors.
-		  --deploy-maven-desc        [Default: true] Set to false if you do not wish to deploy Maven descriptors.
-		  --global                   [Default: false] Set to true if you'd like the configuration to be global (for all projects). Specific projects can override the global configuration.
-		  --ivy-artifacts-pattern    [Default: '[organization]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]' Set the deployed Ivy artifacts pattern.
-		  --ivy-desc-pattern         [Default: '[organization]/[module]/ivy-[revision].xml' Set the deployed Ivy descriptor pattern.
-		  --repo-deploy              [Optional] Repository for artifacts deployment.
-		  --repo-resolve             [Optional] Repository for dependencies resolution.
-		  --server-id-deploy         [Optional] Artifactory server ID for deployment. The server should be configured using the 'jfrog c add' command.
-		  --server-id-resolve        [Optional] Artifactory server ID for resolution. The server should be configured using the 'jfrog c add' command.
-		  --use-wrapper              [Default: false] Set to true if you wish to use the wrapper.
-		  --uses-plugin              [Default: false] Set to true if the Gradle Artifactory Plugin is already applied in the build script.
-
-	*/
-
 	DeployIvyDesc   string `envconfig:"PLUGIN_DEPLOY_IVY_DESC"`
 	DeployMavenDesc string `envconfig:"PLUGIN_DEPLOY_MAVEN_DESC"`
 	Global          string `envconfig:"PLUGIN_GLOBAL"`
@@ -109,8 +92,7 @@ type Args struct {
 	ServerIdDeploy  string `envconfig:"PLUGIN_SERVER_ID_DEPLOY"`
 	ServerIdResolve string `envconfig:"PLUGIN_SERVER_ID_RESOLVE"`
 	UseWrapper      string `envconfig:"PLUGIN_USE_WRAPPER"`
-
-	GradleTasks string `envconfig:"PLUGIN_TASKS"`
+	GradleTasks     string `envconfig:"PLUGIN_TASKS"`
 
 	// UploadParams
 	Ant               string `envconfig:"PLUGIN_ANT"`
@@ -249,6 +231,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetUploadCommandArgs(args)
 	case DownloadCmd:
 		commandsList, err = GetDownloadCommandArgs(args)
+	case CleanUpCmd:
+		commandsList, err = GetCleanupCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {

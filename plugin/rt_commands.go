@@ -253,6 +253,50 @@ func GetDownloadCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+var CleanupCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--access-token=", "PLUGIN_ACCESS, TOKEN", false, false, nil, nil},
+	{"--archive-entries=", "PLUGIN_ARCHIVE_ENTRIES", false, false, nil, nil},
+	{"--build=", "PLUGIN_BUILD", false, false, nil, nil},
+	{"--client-cert-key-path=", "PLUGIN_CLIENT_CERT_KEY_PATH", false, false, nil, nil},
+	{"--client-cert-path=", "PLUGIN_CLIENT_CERT_PATH", false, false, nil, nil},
+	{"--dry-run=", "PLUGIN_DRY_RUN", false, false, nil, nil},
+	{"--exclude-artifacts=", "PLUGIN_EXCLUDE_ARTIFACTS", false, false, nil, nil},
+	{"--exclude-props=", "PLUGIN_EXCLUDE_PROPS", false, false, nil, nil},
+	{"--exclusions=", "PLUGIN_EXCLUSIONS", false, false, nil, nil},
+	{"--fail-no-op=", "PLUGIN_FAIL_NO_OP", false, false, nil, nil},
+	{"--include-deps=", "PLUGIN_INCLUDE_DEPS", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--limit=", "PLUGIN_LIMIT", false, false, nil, nil},
+	{"--offset=", "PLUGIN_OFFSET", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--props=", "PLUGIN_PROPS", false, false, nil, nil},
+	{"--quiet=", "PLUGIN_QUIET", false, false, nil, nil},
+	{"--recursive=", "PLUGIN_RECURSIVE", false, false, nil, nil},
+	{"--retries=", "PLUGIN_RETRIES", false, false, nil, nil},
+	{"--retry-wait-time=", "PLUGIN_RETRY_WAIT_TIME", false, false, nil, nil},
+	{"--server-id=", "PLUGIN_SERVER_ID", false, false, nil, nil},
+	{"--sort-by=", "PLUGIN_SORT_BY", false, false, nil, nil},
+	{"--sort-order=", "PLUGIN_SORT_ORDER", false, false, nil, nil},
+	{"--spec=", "PLUGIN_SPEC", false, false, nil, nil},
+	{"--spec-vars=", "PLUGIN_SPEC_VARS", false, false, nil, nil},
+	{"--ssh-key-path=", "PLUGIN_SSH_KEY_PATH", false, false, nil, nil},
+	{"--ssh-passphrase=", "PLUGIN_SSH_PASSPHRASE", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+func GetCleanupCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	cleanupCommandArgs := []string{"rt", "del", args.Target}
+	err := PopulateArgs(&cleanupCommandArgs, &args, CleanupCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, cleanupCommandArgs)
+	return cmdList, nil
+}
+
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
 	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
 
@@ -308,6 +352,9 @@ func AppendStringArg(argsList *[]string, argName string, argValue *string) {
 }
 
 func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
+	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
+		return []string{}
+	}
 	srvConfigStr := "tmpSrvConfig"
 	return []string{"config", "add", srvConfigStr, "--url=" + url,
 		"--user=" + userName, "--password=" + password, "--interactive=false"}
@@ -375,4 +422,5 @@ const (
 	GradleConfig = "gradle-config"
 	UploadCmd    = "upload"
 	DownloadCmd  = "download"
+	CleanUpCmd   = "cleanup"
 )
