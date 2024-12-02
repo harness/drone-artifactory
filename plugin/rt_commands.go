@@ -312,6 +312,36 @@ func GetBuildInfoCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+var PromoteCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--access-token=", "PLUGIN_ACCESS, TOKEN", false, false, nil, nil},
+	{"--comment=", "PLUGIN_COMMENT", false, false, nil, nil},
+	{"--copy=", "PLUGIN_COPY", false, false, nil, nil},
+	{"--dry-run=", "PLUGIN_DRY_RUN", false, false, nil, nil},
+	{"--fail-fast=", "PLUGIN_FAIL_FAST", false, false, nil, nil},
+	{"--include-dependencies=", "PLUGIN_INCLUDE_DEPENDENCIES", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--props=", "PLUGIN_PROPS", false, false, nil, nil},
+	{"--server-id=", "PLUGIN_SERVER_ID", false, false, nil, nil},
+	{"--source-repo=", "PLUGIN_SOURCE_REPO", false, false, nil, nil},
+	{"--ssh-key-path=", "PLUGIN_SSH_KEY_PATH", false, false, nil, nil},
+	{"--ssh-passphrase=", "PLUGIN_SSH_PASSPHRASE", false, false, nil, nil},
+	{"--status=", "PLUGIN_STATUS", false, false, nil, nil},
+}
+
+func GetPromoteCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	promoteCommandArgs := []string{"rt", "build-promote", args.BuildName, args.BuildNumber, args.Target}
+	err := PopulateArgs(&promoteCommandArgs, &args, PromoteCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, promoteCommandArgs)
+	return cmdList, nil
+}
+
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
 	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
 
@@ -439,4 +469,5 @@ const (
 	DownloadCmd  = "download"
 	CleanUpCmd   = "cleanup"
 	BuildInfoCmd = "build-info"
+	PromoteCmd   = "promote"
 )
