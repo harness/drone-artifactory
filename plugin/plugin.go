@@ -233,6 +233,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetDownloadCommandArgs(args)
 	case CleanUpCmd:
 		commandsList, err = GetCleanupCommandArgs(args)
+	case BuildInfoCmd:
+		commandsList, err = GetBuildInfoCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {

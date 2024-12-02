@@ -297,6 +297,21 @@ func GetCleanupCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+func GetBuildInfoCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	buildCollectEnvCommandArgs := []string{"rt", "build-collect-env", args.BuildName, args.BuildNumber}
+	buildInfoCommandArgs := []string{"rt", "build-publish", args.BuildName, args.BuildNumber}
+	err := PopulateArgs(&buildInfoCommandArgs, &args, nil)
+	if err != nil {
+		return cmdList, err
+	}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, buildCollectEnvCommandArgs)
+	cmdList = append(cmdList, buildInfoCommandArgs)
+	return cmdList, nil
+}
+
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
 	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
 
@@ -423,4 +438,5 @@ const (
 	UploadCmd    = "upload"
 	DownloadCmd  = "download"
 	CleanUpCmd   = "cleanup"
+	BuildInfoCmd = "build-info"
 )
