@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"sync"
 )
@@ -367,11 +366,11 @@ var XrayScanCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 func GetScanCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
 
-	tmpLocalDir := "./"
+	tmpLocalDir := "./tmplocaldir/"
 
 	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
 	downloadCommandArgs := []string{"rt", "download", args.Source, tmpLocalDir}
-	scanPath := `"` + filepath.Join(tmpLocalDir, args.ScanFilePattern) + `"`
+	scanPath := tmpLocalDir + args.ScanFilePattern //`"` + filepath.Join(tmpLocalDir, args.ScanFilePattern) + `"`
 	scanCommandArgs := []string{"scan", scanPath}
 	err := PopulateArgs(&scanCommandArgs, &args, nil)
 	if err != nil {
