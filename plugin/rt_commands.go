@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"sync"
 )
@@ -342,6 +343,45 @@ func GetPromoteCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+var XrayScanCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--access-token=", "PLUGIN_ACCESS", false, false, nil, nil},
+	{"--ant=", "PLUGIN_ANT", false, false, nil, nil},
+	{"--bypass-archive-limits=", "PLUGIN_BYPASS_ARCHIVE_LIMITS", false, false, nil, nil},
+	{"--extended-table=", "PLUGIN_EXTENDED_TABLE", false, false, nil, nil},
+	{"--fail=", "PLUGIN_FAIL", false, false, nil, nil},
+	{"--fixable-only=", "PLUGIN_FIXABLE_ONLY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--licenses=", "PLUGIN_LICENSES", false, false, nil, nil},
+	{"--min-severity=", "PLUGIN_MIN_SEVERITY", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--recursive=", "PLUGIN_RECURSIVE", false, false, nil, nil},
+	{"--regexp=", "PLUGIN_REGEXP", false, false, nil, nil},
+	{"--repo-path=", "PLUGIN_REPO_PATH", false, false, nil, nil},
+	{"--server-id=", "PLUGIN_SERVER_ID", false, false, nil, nil},
+	{"--spec=", "PLUGIN_SPEC", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+	{"--vuln=", "PLUGIN_VULN", false, false, nil, nil},
+	{"--watches=", "PLUGIN_WATCHES", false, false, nil, nil},
+}
+
+func GetScanCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+
+	tmpLocalDir := "./"
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	downloadCommandArgs := []string{"rt", "download", args.Source, tmpLocalDir}
+	scanPath := `"` + filepath.Join(tmpLocalDir, args.ScanFilePattern) + `"`
+	scanCommandArgs := []string{"scan", scanPath}
+	err := PopulateArgs(&scanCommandArgs, &args, nil)
+	if err != nil {
+		return cmdList, err
+	}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, downloadCommandArgs)
+	cmdList = append(cmdList, scanCommandArgs)
+	return cmdList, nil
+}
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
 	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
 
@@ -470,4 +510,5 @@ const (
 	CleanUpCmd   = "cleanup"
 	BuildInfoCmd = "build-info"
 	PromoteCmd   = "promote"
+	ScanCommand  = "scan"
 )

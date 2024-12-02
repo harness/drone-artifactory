@@ -137,6 +137,19 @@ type Args struct {
 	SortBy                  string `envconfig:"PLUGIN_SORT_BY"`
 	SortOrder               string `envconfig:"PLUGIN_SORT_ORDER"`
 	ValidateSymlinks        string `envconfig:"PLUGIN_VALIDATE_SYMLINKS"`
+	BypassArchiveLimits     string `envconfig:"PLUGIN_BYPASS_ARCHIVE_LIMITS"`
+
+	// xray
+	ScanFilePattern string `envconfig:"PLUGIN_SCAN_FILE_PATTERN"`
+	Vuln            string `envconfig:"PLUGIN_VULN"`
+	ExtendedTable   string `envconfig:"PLUGIN_EXTENDED_TABLE"`
+	Fail            string `envconfig:"PLUGIN_FAIL"`
+	FixableOnly     string `envconfig:"PLUGIN_FIXABLE_ONLY"`
+	Format          string `envconfig:"PLUGIN_FORMAT"`
+	License         string `envconfig:"PLUGIN_LICENSE"`
+	MinSeverity     string `envconfig:"PLUGIN_MIN_SEVERITY"`
+	RepoPath        string `envconfig:"PLUGIN_REPO_PATH"`
+	Watches         string `envconfig:"PLUGIN_WATCHES"`
 }
 
 func Exec(ctx context.Context, args Args) error {
@@ -237,6 +250,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetBuildInfoCommandArgs(args)
 	case PromoteCmd:
 		commandsList, err = GetPromoteCommandArgs(args)
+	case ScanCommand:
+		commandsList, err = GetScanCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
