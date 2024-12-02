@@ -252,6 +252,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetPromoteCommandArgs(args)
 	case ScanCommand:
 		commandsList, err = GetScanCommandArgs(args)
+	case PublishCommand:
+		commandsList, err = GetPublishCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {

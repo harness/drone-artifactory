@@ -301,13 +301,20 @@ func GetBuildInfoCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
 	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
 	buildCollectEnvCommandArgs := []string{"rt", "build-collect-env", args.BuildName, args.BuildNumber}
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, buildCollectEnvCommandArgs)
+	return cmdList, nil
+}
+
+func GetPublishCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
 	buildInfoCommandArgs := []string{"rt", "build-publish", args.BuildName, args.BuildNumber}
 	err := PopulateArgs(&buildInfoCommandArgs, &args, nil)
 	if err != nil {
 		return cmdList, err
 	}
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
-	cmdList = append(cmdList, buildCollectEnvCommandArgs)
 	cmdList = append(cmdList, buildInfoCommandArgs)
 	return cmdList, nil
 }
@@ -500,14 +507,15 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 }
 
 const (
-	MvnCmd       = "mvn"
-	MvnConfig    = "mvn-config"
-	GradleCmd    = "gradle"
-	GradleConfig = "gradle-config"
-	UploadCmd    = "upload"
-	DownloadCmd  = "download"
-	CleanUpCmd   = "cleanup"
-	BuildInfoCmd = "build-info"
-	PromoteCmd   = "promote"
-	ScanCommand  = "scan"
+	MvnCmd         = "mvn"
+	MvnConfig      = "mvn-config"
+	GradleCmd      = "gradle"
+	GradleConfig   = "gradle-config"
+	UploadCmd      = "upload"
+	DownloadCmd    = "download"
+	CleanUpCmd     = "cleanup"
+	BuildInfoCmd   = "build-info"
+	PromoteCmd     = "promote"
+	ScanCommand    = "scan"
+	PublishCommand = "publish"
 )
