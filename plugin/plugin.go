@@ -93,6 +93,7 @@ type Args struct {
 	ServerIdResolve string `envconfig:"PLUGIN_SERVER_ID_RESOLVE"`
 	UseWrapper      string `envconfig:"PLUGIN_USE_WRAPPER"`
 	GradleTasks     string `envconfig:"PLUGIN_TASKS"`
+	BuildFile       string `envconfig:"PLUGIN_BUILD_FILE"`
 
 	// UploadParams
 	Ant               string `envconfig:"PLUGIN_ANT"`

@@ -47,6 +47,9 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 	if err != nil {
 		return cmdList, err
 	}
+	if len(args.MvnPomFile) > 0 {
+		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.BuildFile)
+	}
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, mvnConfigCommandArgs)
@@ -54,21 +57,6 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 
 	return cmdList, nil
 }
-
-/*
-Options:
-  --deploy-ivy-desc          [Default: true] Set to false if you do not wish to deploy Ivy descriptors.
-  --deploy-maven-desc        [Default: true] Set to false if you do not wish to deploy Maven descriptors.
-  --global                   [Default: false] Set to true if you'd like the configuration to be global (for all projects). Specific projects can override the global configuration.
-  --ivy-artifacts-pattern    [Default: '[organization]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]' Set the deployed Ivy artifacts pattern.
-  --ivy-desc-pattern         [Default: '[organization]/[module]/ivy-[revision].xml' Set the deployed Ivy descriptor pattern.
-  --repo-deploy              [Optional] Repository for artifacts deployment.
-  --repo-resolve             [Optional] Repository for dependencies resolution.
-  --server-id-deploy         [Optional] Artifactory server ID for deployment. The server should be configured using the 'jfrog c add' command.
-  --server-id-resolve        [Optional] Artifactory server ID for resolution. The server should be configured using the 'jfrog c add' command.
-  --use-wrapper              [Default: false] Set to true if you wish to use the wrapper.
-  --uses-plugin              [Default: false] Set to true if the Gradle Artifactory Plugin is already applied in the build script.
-*/
 
 var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
 	{"--deploy-ivy-desc=", "PLUGIN_DEPLOY_IVY_DESC", false, false, nil, nil},
@@ -84,17 +72,6 @@ var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringI
 	{"--uses-plugin=", "PLUGIN_USES_PLUGIN", false, false, nil, nil},
 }
 
-/*
-Options:
-
-	--build-name          [Optional] Providing this option will collect and record build info for this build name. Build number option is mandatory when this option is provided.
-	--build-number        [Optional] Providing this option will collect and record build info for this build number. Build name option is mandatory when this option is provided.
-	--detailed-summary    [Default: false] Set to true to include a list of the affected files in the command summary.
-	--format              [Default: table] Defines the output format of the command. Acceptable values are: table, json, simple-json and sarif. Note: the json format doesn't include information about scans that are included as part of the Advanced Security package.
-	--project             [Optional] JFrog Artifactory project key.
-	--scan                [Default: false] Set if you'd like all files to be scanned by Xray on the local file system prior to the upload, and skip the upload if any of the files are found vulnerable.
-	--threads             [Default: 3] Number of threads for uploading build artifacts.
-*/
 var GradleRunJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
 	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
 	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
@@ -121,6 +98,10 @@ func GetGradleCommandArgs(args Args) ([][]string, error) {
 	err = PopulateArgs(&gradleTaskCommandArgs, &args, GradleRunJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
+	}
+
+	if len(args.BuildFile) > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "-b "+args.BuildFile)
 	}
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
@@ -164,6 +145,8 @@ var UploadCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem
 	{"--regexp=", "PLUGIN_REGEXP", false, false, nil, nil},
 	{"--retry-wait-time=", "PLUGIN_RETRY_WAIT_TIME", false, false, nil, nil},
 	{"--server-id=", "PLUGIN_SERVER_ID", false, false, nil, nil},
+	{"--spec=", "PLUGIN_SPEC", false, false, nil, nil},
+	{"--spec-vars=", "PLUGIN_SPEC_VARS", false, false, nil, nil},
 	{"--split-count=", "PLUGIN_SPLIT_COUNT", false, false, nil, nil},
 	{"--ssh-key-path=", "PLUGIN_SSH_KEY_PATH", false, false, nil, nil},
 	{"--ssh-passphrase=", "PLUGIN_SSH_PASSPHRASE", false, false, nil, nil},
@@ -373,13 +356,17 @@ var XrayScanCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 func GetScanCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
 
-	tmpLocalDir := "./tmplocaldir/"
+	tmpLocalDir := "./tmplocalscandir/"
 
 	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
 	downloadCommandArgs := []string{"rt", "download", args.Source, tmpLocalDir}
 	scanPath := tmpLocalDir + args.ScanFilePattern //`"` + filepath.Join(tmpLocalDir, args.ScanFilePattern) + `"`
 	scanCommandArgs := []string{"scan", scanPath}
 	err := PopulateArgs(&scanCommandArgs, &args, nil)
+	if err != nil {
+		return cmdList, err
+	}
+	err = PopulateArgs(&scanCommandArgs, &args, XrayScanCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
 	}
