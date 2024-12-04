@@ -12,9 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -54,22 +56,22 @@ type Args struct {
 	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
-	// Cleanup parameters
-	CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
+	//// Cleanup parameters
+	//CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
 
 	// PLUGIN_COMMAND
 	Command string `envconfig:"PLUGIN_COMMAND"`
 
-	// Xray parameters
-	XrayWatchName   string `envconfig:"PLUGIN_XRAY_WATCH_NAME"`
-	XrayBuildName   string `envconfig:"PLUGIN_XRAY_BUILD_NAME"`
-	XrayBuildNumber string `envconfig:"PLUGIN_XRAY_BUILD_NUMBER"`
-
-	// Docker parameters
-	DockerImageName string `envconfig:"PLUGIN_DOCKER_IMAGE_NAME"`
-	DockerRepo      string `envconfig:"PLUGIN_DOCKER_REPO"`
-	DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
-	DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
+	//// Xray parameters
+	//XrayWatchName   string `envconfig:"PLUGIN_XRAY_WATCH_NAME"`
+	//XrayBuildName   string `envconfig:"PLUGIN_XRAY_BUILD_NAME"`
+	//XrayBuildNumber string `envconfig:"PLUGIN_XRAY_BUILD_NUMBER"`
+	//
+	//// Docker parameters
+	//DockerImageName string `envconfig:"PLUGIN_DOCKER_IMAGE_NAME"`
+	//DockerRepo      string `envconfig:"PLUGIN_DOCKER_REPO"`
+	//DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
+	//DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
 
 	// Maven parameters
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
@@ -94,63 +96,6 @@ type Args struct {
 	UseWrapper      string `envconfig:"PLUGIN_USE_WRAPPER"`
 	GradleTasks     string `envconfig:"PLUGIN_TASKS"`
 	BuildFile       string `envconfig:"PLUGIN_BUILD_FILE"`
-
-	// UploadParams
-	Ant               string `envconfig:"PLUGIN_ANT"`
-	Archive           string `envconfig:"PLUGIN_ARCHIVE"`
-	ChunkSize         string `envconfig:"PLUGIN_CHUNK_SIZE"`
-	ClientCertKeyPath string `envconfig:"PLUGIN_CLIENT_CERT_KEY_PATH"`
-	ClientCertPath    string `envconfig:"PLUGIN_CLIENT_CERT_PATH"`
-	Deb               string `envconfig:"PLUGIN_DEB"`
-	DetailedSummary   string `envconfig:"PLUGIN_DETAILED_SUMMARY"`
-	DryRun            string `envconfig:"PLUGIN_DRY_RUN"`
-	Exclusions        string `envconfig:"PLUGIN_EXCLUSIONS"`
-	Explode           string `envconfig:"PLUGIN_EXPLODE"`
-	FailNoOp          string `envconfig:"PLUGIN_FAIL_NO_OP"`
-	IncludeDirs       string `envconfig:"PLUGIN_INCLUDE_DIRS"`
-	MinSplit          string `envconfig:"PLUGIN_MIN_SPLIT"`
-	Module            string `envconfig:"PLUGIN_MODULE"`
-	Project           string `envconfig:"PLUGIN_PROJECT"`
-	Quiet             string `envconfig:"PLUGIN_QUIET"`
-	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
-	Regexp            string `envconfig:"PLUGIN_REGEXP"`
-	RetryWaitTime     string `envconfig:"PLUGIN_RETRY_WAIT_TIME"`
-	ServerId          string `envconfig:"PLUGIN_SERVER_ID"`
-	SplitCount        string `envconfig:"PLUGIN_SPLIT_COUNT"`
-	SSHKeyPath        string `envconfig:"PLUGIN_SSH_KEY_PATH"`
-	SSHPassphrase     string `envconfig:"PLUGIN_SSH_PASSPHRASE"`
-	Symlinks          string `envconfig:"PLUGIN_SYMLINKS"`
-	SyncDeletes       string `envconfig:"PLUGIN_SYNC_DELETES"`
-
-	// DownloadParams
-	ArchiveEntries          string `envconfig:"PLUGIN_ARCHIVE_ENTRIES"`
-	Build                   string `envconfig:"PLUGIN_BUILD"`
-	Bundle                  string `envconfig:"PLUGIN_BUNDLE"`
-	BypassArchiveInspection string `envconfig:"PLUGIN_BYPASS_ARCHIVE_INSPECTION"`
-	ExcludeArtifacts        string `envconfig:"PLUGIN_EXCLUDE_ARTIFACTS"`
-	ExcludeProps            string `envconfig:"PLUGIN_EXCLUDE_PROPS"`
-	GpgKey                  string `envconfig:"PLUGIN_GPG_KEY"`
-	IncludeDeps             string `envconfig:"PLUGIN_INCLUDE_DEPS"`
-	Limit                   string `envconfig:"PLUGIN_LIMIT"`
-	Offset                  string `envconfig:"PLUGIN_OFFSET"`
-	Props                   string `envconfig:"PLUGIN_PROPS"`
-	SkipChecksum            string `envconfig:"PLUGIN_SKIP_CHECKSUM"`
-	SortBy                  string `envconfig:"PLUGIN_SORT_BY"`
-	SortOrder               string `envconfig:"PLUGIN_SORT_ORDER"`
-	ValidateSymlinks        string `envconfig:"PLUGIN_VALIDATE_SYMLINKS"`
-	BypassArchiveLimits     string `envconfig:"PLUGIN_BYPASS_ARCHIVE_LIMITS"`
-
-	// xray
-	ScanFilePattern string `envconfig:"PLUGIN_SCAN_FILE_PATTERN"`
-	Vuln            string `envconfig:"PLUGIN_VULN"`
-	ExtendedTable   string `envconfig:"PLUGIN_EXTENDED_TABLE"`
-	Fail            string `envconfig:"PLUGIN_FAIL"`
-	FixableOnly     string `envconfig:"PLUGIN_FIXABLE_ONLY"`
-	Format          string `envconfig:"PLUGIN_FORMAT"`
-	License         string `envconfig:"PLUGIN_LICENSE"`
-	MinSeverity     string `envconfig:"PLUGIN_MIN_SEVERITY"`
-	RepoPath        string `envconfig:"PLUGIN_REPO_PATH"`
-	Watches         string `envconfig:"PLUGIN_WATCHES"`
 }
 
 func Exec(ctx context.Context, args Args) error {
@@ -241,20 +186,6 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetMavenCommandArgs(args)
 	case GradleCmd:
 		commandsList, err = GetGradleCommandArgs(args)
-	case UploadCmd:
-		commandsList, err = GetUploadCommandArgs(args)
-	case DownloadCmd:
-		commandsList, err = GetDownloadCommandArgs(args)
-	case CleanUpCmd:
-		commandsList, err = GetCleanupCommandArgs(args)
-	case BuildInfoCmd:
-		commandsList, err = GetBuildInfoCommandArgs(args)
-	case PromoteCmd:
-		commandsList, err = GetPromoteCommandArgs(args)
-	case ScanCommand:
-		commandsList, err = GetScanCommandArgs(args)
-	case PublishCommand:
-		commandsList, err = GetPublishCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
@@ -390,123 +321,6 @@ func setupCommonArgs(cmdArgs []string, args Args) ([]string, error) {
 		}
 	}
 
-	return cmdArgs, nil
-}
-
-/*
-func handlePromote(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-	if args.SourceRepo == "" || args.TargetRepo == "" {
-		log.Fatalf("source repo and target repo need to be set for promote")
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--source-repo='%s'", args.SourceRepo))
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--target-repo='%s'", args.TargetRepo))
-	if args.PromotionStatus != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--status='%s'", args.PromotionStatus))
-	}
-	if args.PromotionComment != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--comment='%s'", args.PromotionComment))
-	}
-	if args.IncludeDeps {
-		cmdArgs = append(cmdArgs, "--include-dependencies")
-	}
-	return cmdArgs, nil
-}
-*/
-
-func handleBuildInfo(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-	if args.BuildName == "" || args.BuildNumber == "" {
-		log.Fatalf("build name and build number need to be set for build-info")
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.BuildNumber))
-	return cmdArgs, nil
-}
-
-func handleCleanup(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	cmdArgs, err := setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-
-	// Handle cleanup-specific arguments
-	if args.CleanupPattern != "" {
-		// Create cleanup-spec.json with pattern and target
-		spec := fmt.Sprintf(`{
-			"files": [
-				{
-					"pattern": "%s",
-					"delete": true
-				}
-			]
-		}`, args.CleanupPattern)
-
-		// Write spec to file using os.WriteFile (new in Go 1.16)
-		specFilePath := "cleanup-spec.json"
-		err := os.WriteFile(specFilePath, []byte(spec), 0644) // Replacing ioutil.WriteFile
-		if err != nil {
-			return cmdArgs, fmt.Errorf("failed to write spec file: %v", err)
-		}
-
-		// Add the spec file to the command arguments
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", specFilePath))
-		cmdArgs = append(cmdArgs, "--quiet")
-	}
-
-	return cmdArgs, nil
-}
-
-func handleDocker(cmdArgs []string, args Args) ([]string, error) {
-	// Ensure both Docker image name and Docker repo are provided
-	if args.DockerImageName == "" || args.DockerRepo == "" {
-		log.Fatalf("docker image name and docker repo need to be set for docker push")
-	}
-
-	// Set up common arguments
-	cmdArgs, err := setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-
-	// Append Docker image tag and target repository
-	cmdArgs = append(cmdArgs, fmt.Sprintf("%s %s", args.DockerImageName, args.DockerRepo))
-
-	// Optionally, handle username and password for authentication if provided
-	if args.DockerUsername != "" && args.DockerPassword != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--user=%s:%s", args.DockerUsername, args.DockerPassword))
-	}
-
-	return cmdArgs, nil
-}
-
-func handleXrayScan(cmdArgs []string, args Args) ([]string, error) {
-	// Set up common arguments
-	var err error
-	cmdArgs, err = setupCommonArgs(cmdArgs, args)
-	if err != nil {
-		return cmdArgs, err
-	}
-	if args.XrayWatchName != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--watch='%s'", args.XrayWatchName))
-	}
-	if args.XrayBuildName != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.XrayBuildName))
-	}
-	if args.XrayBuildNumber != "" {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-number='%s'", args.XrayBuildNumber))
-	}
 	return cmdArgs, nil
 }
 
@@ -704,3 +518,242 @@ func copyEnvVariableIfExists(src string, dest string) {
 		log.Printf("Failed to copy env variable from %s to %s with error %v", src, dest, err)
 	}
 }
+
+var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+}
+
+func GetMavenCommandArgs(args Args) ([][]string, error) {
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+
+	mvnConfigCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+
+	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
+	err = PopulateArgs(&mvnRunCommandArgs, &args, MavenRunCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+	if len(args.MvnPomFile) > 0 {
+		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.BuildFile)
+	}
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, mvnConfigCommandArgs)
+	cmdList = append(cmdList, mvnRunCommandArgs)
+
+	return cmdList, nil
+}
+
+var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--deploy-ivy-desc=", "PLUGIN_DEPLOY_IVY_DESC", false, false, nil, nil},
+	{"--deploy-maven-desc=", "PLUGIN_DEPLOY_MAVEN_DESC", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--ivy-artifacts-pattern=", "PLUGIN_IVY_ARTIFACTS_PATTERN", false, false, nil, nil},
+	{"--ivy-desc-pattern=", "PLUGIN_IVY_DESC_PATTERN", false, false, nil, nil},
+	{"--repo-deploy=", "PLUGIN_REPO_DEPLOY", false, false, nil, nil},
+	{"--repo-resolve=", "PLUGIN_REPO_RESOLVE", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+	{"--uses-plugin=", "PLUGIN_USES_PLUGIN", false, false, nil, nil},
+}
+
+var GradleRunJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+func GetGradleCommandArgs(args Args) ([][]string, error) {
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+
+	gradleConfigCommandArgs := []string{GradleConfig}
+	err := PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+
+	gradleTaskCommandArgs := []string{GradleCmd, args.GradleTasks}
+	err = PopulateArgs(&gradleTaskCommandArgs, &args, GradleRunJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+
+	if len(args.BuildFile) > 0 {
+		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "-b "+args.BuildFile)
+	}
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, gradleConfigCommandArgs)
+	cmdList = append(cmdList, gradleTaskCommandArgs)
+
+	return cmdList, nil
+}
+
+type JsonTagToExeFlagMapStringItem struct {
+	FlagName         string
+	PluginArgJsonTag string
+	IsMandatory      bool
+	StopOnError      bool
+	ValidationFunc   func() (bool, error)
+	TransformFunc    func() (string, error)
+}
+
+func PopulateArgs(tmpCommandsList *[]string, args *Args,
+	jsonTagToExeFlagMapStringItemList []JsonTagToExeFlagMapStringItem) error {
+
+	for _, jsonTagToExeFlagMapStringItem := range jsonTagToExeFlagMapStringItemList {
+		flagName := jsonTagToExeFlagMapStringItem.FlagName
+		pluginArgJsonTag := jsonTagToExeFlagMapStringItem.PluginArgJsonTag
+		pluginArgValue, err := GetFieldAddress[*Args, string](args, pluginArgJsonTag)
+
+		if err != nil {
+			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
+				fmt.Println("GetFieldAddress error: ", err)
+				return err
+			}
+			fmt.Println("GetFieldAddress error: ", err)
+			continue
+		}
+
+		if pluginArgValue == nil {
+			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
+				fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+				return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
+			}
+			fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+			continue
+		}
+
+		if pluginArgValue == nil &&
+			jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
+			fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+			return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
+		}
+		AppendStringArg(tmpCommandsList, flagName, pluginArgValue)
+	}
+
+	return nil
+}
+
+func AppendStringArg(argsList *[]string, argName string, argValue *string) {
+
+	if argsList == nil {
+		fmt.Println("argsList is nil")
+		return
+	}
+
+	if argValue == nil {
+		fmt.Println("argValue is nil")
+		return
+	}
+
+	if len(*argValue) > 0 {
+		*argsList = append(*argsList, argName+*argValue)
+	}
+}
+
+func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
+	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
+		return []string{}
+	}
+	srvConfigStr := "tmpSrvConfig"
+	return []string{"config", "add", srvConfigStr, "--url=" + url,
+		"--user=" + userName, "--password=" + password, "--interactive=false"}
+}
+
+var tagFieldCache sync.Map
+
+func precomputeTagMapping(structType reflect.Type) map[string]int {
+	tagMap := make(map[string]int)
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		tag := field.Tag.Get("envconfig")
+		if tag != "" {
+			tagMap[tag] = i
+		}
+	}
+	return tagMap
+}
+
+func getTagMapping(structType reflect.Type) map[string]int {
+	if cachedMapping, ok := tagFieldCache.Load(structType); ok {
+		return cachedMapping.(map[string]int)
+	}
+
+	tagMap := precomputeTagMapping(structType)
+	tagFieldCache.Store(structType, tagMap)
+	return tagMap
+}
+
+func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
+	v := reflect.ValueOf(args)
+	if v.Kind() != reflect.Ptr {
+		return nil, fmt.Errorf("args must be a pointer to a struct; got %T", args)
+	}
+	if v.Elem().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("args must point to a struct; got pointer to %s", v.Elem().Kind())
+	}
+
+	v = v.Elem()
+	t := v.Type()
+
+	tagMap := getTagMapping(t)
+
+	fieldIndex, found := tagMap[argJsonTag]
+	if !found {
+		return nil, fmt.Errorf("field with tag '%s' not found in struct type '%s'", argJsonTag, t.Name())
+	}
+
+	fieldValue := v.Field(fieldIndex)
+	if fieldValue.CanAddr() {
+		if fieldValue.Type().AssignableTo(reflect.TypeOf((*VT)(nil)).Elem()) {
+			return fieldValue.Addr().Interface().(*VT), nil
+		}
+		return nil, fmt.Errorf("field with tag '%s' in struct '%s' is not of type '%T'; actual type is '%s'",
+			argJsonTag, t.Name(), new(VT), fieldValue.Type().String())
+	}
+
+	return nil, fmt.Errorf("field with tag '%s' in struct '%s' cannot be addressed", argJsonTag, t.Name())
+}
+
+const (
+	MvnCmd       = "mvn"
+	MvnConfig    = "mvn-config"
+	GradleCmd    = "gradle"
+	GradleConfig = "gradle-config"
+)
