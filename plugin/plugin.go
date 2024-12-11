@@ -85,8 +85,9 @@ type Args struct {
 	IvyDesc         string `envconfig:"PLUGIN_IVY_DESC_PATTERN"`
 	RepoDeploy      string `envconfig:"PLUGIN_REPO_DEPLOY"`
 	RepoResolve     string `envconfig:"PLUGIN_REPO_RESOLVE"`
-	//ServerIdDeploy  string `envconfig:"PLUGIN_SERVER_ID_DEPLOY"`
-	//ServerIdResolve string `envconfig:"PLUGIN_SERVER_ID_RESOLVE"`
+
+	RepoResolverOrDeployerId string `envconfig:"PLUGIN_REPO_RESOLVER_OR_DEPLOYER_ID"`
+
 	UseWrapper  string `envconfig:"PLUGIN_USE_WRAPPER"`
 	GradleTasks string `envconfig:"PLUGIN_TASKS"`
 	BuildFile   string `envconfig:"PLUGIN_BUILD_FILE"`
@@ -184,6 +185,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetRtMavenResolverCommandArgs(args)
 	case RtMavenRun:
 		commandsList, err = GetMavenRunCommandArgs(args)
+	case RtPublishBuildInfo:
+		commandsList, err = GetRtPublishBuildInfoCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
@@ -614,11 +617,6 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-const (
-	DeployerIdType = "deployer"
-	ResolverIdType = "resolver"
-)
-
 func GetResolverCmd(args Args, resolverIdType string,
 	releaseRepoPluginParam, snapShotRepoPluginParam,
 	releaseCliFlag, snapShotCliFlag string,
@@ -649,17 +647,16 @@ func GetResolverCmd(args Args, resolverIdType string,
 
 			if tmpReleaseRepo, ok := infoMap[releaseRepoPluginParam]; ok {
 				*mvnConfigCommandArgs = append(*mvnConfigCommandArgs, releaseCliFlag+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
 			}
 			if tmpReleaseRepo, ok := infoMap[snapShotRepoPluginParam]; ok {
 				*mvnConfigCommandArgs = append(*mvnConfigCommandArgs, snapShotCliFlag+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
 			}
 
 			userName := ""
 			if tmpUserName, ok := infoMap["PLUGIN_USERNAME"]; ok {
 				userName = tmpUserName.(string)
 			} else {
+				fmt.Println("Unable to to find  PLUGIN_USERNAME ")
 				return fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
 			}
 
@@ -667,6 +664,7 @@ func GetResolverCmd(args Args, resolverIdType string,
 			if tmpPassword, ok := infoMap["PLUGIN_PASSWORD"]; ok {
 				password = tmpPassword.(string)
 			} else {
+				fmt.Println("Unable to to find  PLUGIN_PASSWORD ")
 				return fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
 			}
 
@@ -674,17 +672,17 @@ func GetResolverCmd(args Args, resolverIdType string,
 			if tmpUrl, ok := infoMap["PLUGIN_URL"]; ok {
 				url = tmpUrl.(string)
 			} else {
+				fmt.Println("Unable to to find  PLUGIN_URL ")
 				return fmt.Errorf("Unable to to find  PLUGIN_URL ")
 			}
 
-			resolverConfigComand := GetConfigAddConfigCommandArgs(resolverId, userName, password, url)
-			*cmdList = append(*cmdList, resolverConfigComand)
+			resolverConfigCommand := GetConfigAddConfigCommandArgs(resolverId, userName, password, url)
+			*cmdList = append(*cmdList, resolverConfigCommand)
 
-		} else {
-			log.Println("************ Error reading infoFile ", infoFile, err.Error())
 		}
 	} else {
-		fmt.Println("***********8 resolverId == id empty")
+		fmt.Println("ResolverId is empty")
+		return fmt.Errorf("ResolverId is empty")
 	}
 	return nil
 }
@@ -793,6 +791,40 @@ func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
 
 func getResolverIdFileName(deployerId string) string {
 	return deployerId + ".resolver_data" + ".json"
+}
+
+var RtBuildInfoPublishCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+}
+
+func GetRtPublishBuildInfoCommandArgs(args Args) ([][]string, error) {
+
+	var cmdList [][]string
+	var jfrogConfigAddConfigCommandArgs []string
+
+	idType := ""
+	serverId := ""
+
+	if args.DeployerId != "" {
+		idType = DeployerIdType
+		serverId = args.DeployerId
+	}
+
+	if args.ResolverId != "" {
+		idType = ResolverIdType
+		serverId = args.ResolverId
+	}
+
+	err := GetResolverCmd(args, idType, "None", "None", "", "", &jfrogConfigAddConfigCommandArgs, &cmdList)
+	rtPublishBuildInfoCommandArgs := []string{"rt", BuildPublish, args.BuildName, args.BuildNumber,
+		"--server-id=" + serverId}
+	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
+	if err != nil {
+		return cmdList, err
+	}
+	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
+
+	return cmdList, nil
 }
 
 func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url string) []string {
@@ -927,8 +959,11 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 const (
 	MvnCmd             = "mvn"
 	MvnConfig          = "mvn-config"
+	BuildPublish       = "build-publish"
 	RtMavenDeployer    = "rtMavenDeployer"
 	RtMavenResolver    = "rtMavenResolver"
 	RtMavenRun         = "rtMavenRun"
 	RtPublishBuildInfo = "rtPublishBuildInfo"
+	DeployerIdType     = "deployer"
+	ResolverIdType     = "resolver"
 )
