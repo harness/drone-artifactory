@@ -74,6 +74,7 @@ type Args struct {
 	ResolverId      string `envconfig:"PLUGIN_RESOLVER_ID"`
 	DeployArtifacts string `envconfig:"PLUGIN_DEPLOY_ARTIFACTS"`
 	ExcludePatterns string `envconfig:"PLUGIN_EXCLUDE_PATTERNS"`
+	IncludePatterns string `envconfig:"PLUGIN_INCLUDE_PATTERNS"`
 
 	// Gradle parameters
 	DeployIvyDesc   string `envconfig:"PLUGIN_DEPLOY_IVY_DESC"`
@@ -180,6 +181,8 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 		commandsList, err = GetRtMavenDeployerCommandArgs(args)
 	case RtMavenResolver:
 		commandsList, err = GetRtMavenResolverCommandArgs(args)
+	case RtMavenRun:
+		commandsList, err = GetMavenRunCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
@@ -537,38 +540,97 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
+var MavenRunConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	//{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	//{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	//{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	//{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+	//{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+	//{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+	//{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
+	//{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+}
+
+var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+func GetMavenRunCommandArgs(args Args) ([][]string, error) {
+
+	fmt.Println(">>>>>>>>>>>>>> GetMavenRunCommandArgs <<<<<<<<<<<<<<<<")
+
+	if args.MvnGoals == "" {
+		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
+	}
+
+	var cmdList [][]string
+
+	//jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs("tmpSrvConfig",
+	//	args.Username, args.Password, args.URL)
+	////
+	mvnConfigCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+
+	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
+	err = PopulateArgs(&mvnRunCommandArgs, &args, RtMavenRunCmdJsonTagToExeFlagMapStringItemList)
+	if err != nil {
+		return cmdList, err
+	}
+	if len(args.MvnPomFile) > 0 {
+		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.MvnPomFile)
+	}
+
+	//cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, mvnConfigCommandArgs)
+	cmdList = append(cmdList, mvnRunCommandArgs)
+
+	fmt.Println(mvnConfigCommandArgs)
+	fmt.Println(mvnRunCommandArgs)
+	return cmdList, nil
+}
+
 var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
 	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
 	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
 	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
 	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
-	//{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
-	//{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
 	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
 }
 
 func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println("=======================================")
+	fmt.Println("================= GetRtMavenDeployerCommandArgs ======================")
 
 	var cmdList [][]string
 
 	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.DeployerId,
 		args.Username, args.Password, args.URL)
 
-	rtMavenDeployerCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&rtMavenDeployerCommandArgs, &args, RtMavenDeployerConfigCmdJsonTagToExeFlagMap)
+	rtMavenDeployerMvnConfigCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&rtMavenDeployerMvnConfigCommandArgs, &args, RtMavenDeployerConfigCmdJsonTagToExeFlagMap)
 	if err != nil {
 		return cmdList, err
 	}
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
-	cmdList = append(cmdList, rtMavenDeployerCommandArgs)
-	//cmdList = append(cmdList, mvnRunCommandArgs)
+	cmdList = append(cmdList, rtMavenDeployerMvnConfigCommandArgs)
 
 	fmt.Println("=================")
 	fmt.Println(jfrogConfigAddConfigCommandArgs)
-	fmt.Println(rtMavenDeployerCommandArgs)
+	fmt.Println(rtMavenDeployerMvnConfigCommandArgs)
 
 	return cmdList, nil
 }
@@ -576,7 +638,7 @@ func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
 	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
 	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
-	{"--server-id-deploy=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
 }
 
 func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
@@ -741,4 +803,5 @@ const (
 	MvnConfig       = "mvn-config"
 	RtMavenDeployer = "rtMavenDeployer"
 	RtMavenResolver = "rtMavenResolver"
+	RtMavenRun      = "rtMavenRun"
 )
