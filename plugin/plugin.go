@@ -6,6 +6,7 @@ package plugin
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -540,17 +541,17 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-var MavenRunConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	//{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
-	//{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
-	//{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
-	//{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
-	//{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
-	//{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
-	//{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+var RtMavenConfigCmdJsonTagToExeFlagMapString = []JsonTagToExeFlagMapStringItem{
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
 	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
 	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
-	//{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
 }
 
 var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
@@ -566,7 +567,7 @@ var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapString
 
 func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println(">>>>>>>>>>>>>> GetMavenRunCommandArgs <<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>> mmm GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
 
 	if args.MvnGoals == "" {
 		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
@@ -574,13 +575,120 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
 	var cmdList [][]string
 
-	//jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs("tmpSrvConfig",
-	//	args.Username, args.Password, args.URL)
-	////
 	mvnConfigCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
+	err := PopulateArgs(&mvnConfigCommandArgs, &args, RtMavenConfigCmdJsonTagToExeFlagMapString)
 	if err != nil {
 		return cmdList, err
+	}
+
+	if args.DeployerId != "" {
+		deployerInfoFile := getDeployerIdFileName(args.DeployerId)
+		deployerInfo, err := os.ReadFile(deployerInfoFile)
+
+		if err == nil {
+			var deployerInfoMap map[string]interface{}
+			err = json.Unmarshal(deployerInfo, &deployerInfoMap)
+			if err != nil {
+				log.Println("Error unmarshalling deployerInfo ", deployerInfo, err.Error())
+			}
+
+			// 		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
+			//		"PLUGIN_REPO_DEPLOY_SNAPSHOTS": args.MvnDeploySnapshots,
+			if tmpReleaseRepo, ok := deployerInfoMap["PLUGIN_REPO_DEPLOY_RELEASES"]; ok {
+				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-releases="+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+			if tmpReleaseRepo, ok := deployerInfoMap["PLUGIN_REPO_DEPLOY_SNAPSHOTS"]; ok {
+				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-snapshots="+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+
+			userName := ""
+			if tmpUserName, ok := deployerInfoMap["PLUGIN_USERNAME"]; ok {
+				userName = tmpUserName.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
+			}
+
+			password := ""
+			if tmpPassword, ok := deployerInfoMap["PLUGIN_PASSWORD"]; ok {
+				password = tmpPassword.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
+			}
+
+			url := ""
+			if tmpUrl, ok := deployerInfoMap["PLUGIN_URL"]; ok {
+				url = tmpUrl.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_URL ")
+			}
+
+			deployerConfigComand := GetConfigAddConfigCommandArgs(args.DeployerId, userName, password, url)
+			cmdList = append(cmdList, deployerConfigComand)
+
+		} else {
+			log.Println("************ Error reading deployerInfoFile ", deployerInfoFile, err.Error())
+		}
+	} else {
+		fmt.Println("***********8 args.DeployerId == id empty")
+	}
+
+	//resolverId, err := GetFieldAddress[*Args, string](&args, "PLUGIN_RESOLVER_ID")
+	//if err != nil {
+	//	fmt.Println("Error getting resolverId ", err)
+	//}
+
+	if args.ResolverId != "" {
+		resolverInfoFile := getResolverIdFileName(args.ResolverId)
+		resolverInfo, err := os.ReadFile(resolverInfoFile)
+
+		if err == nil {
+			var resolverInfoMap map[string]interface{}
+			err = json.Unmarshal(resolverInfo, &resolverInfoMap)
+			if err != nil {
+				log.Println("Error unmarshalling resolverInfo ", resolverInfo, err.Error())
+			}
+
+			//		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
+			//		"PLUGIN_REPO_RESOLVE_SNAPSHOTS": args.MvnResolveSnapshots,
+			if tmpReleaseRepo, ok := resolverInfoMap["PLUGIN_REPO_RESOLVE_RELEASES"]; ok {
+				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-releases="+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+			if tmpReleaseRepo, ok := resolverInfoMap["PLUGIN_REPO_RESOLVE_SNAPSHOTS"]; ok {
+				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-snapshots="+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+
+			userName := ""
+			if tmpUserName, ok := resolverInfoMap["PLUGIN_USERNAME"]; ok {
+				userName = tmpUserName.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
+			}
+
+			password := ""
+			if tmpPassword, ok := resolverInfoMap["PLUGIN_PASSWORD"]; ok {
+				password = tmpPassword.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
+			}
+
+			url := ""
+			if tmpUrl, ok := resolverInfoMap["PLUGIN_URL"]; ok {
+				url = tmpUrl.(string)
+			} else {
+				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_URL ")
+			}
+
+			resolverConfigComand := GetConfigAddConfigCommandArgs(args.ResolverId, userName, password, url)
+			cmdList = append(cmdList, resolverConfigComand)
+		} else {
+			log.Println("************ Error reading resolverInfoFile ", resolverInfoFile, err.Error())
+		}
+	} else {
+		fmt.Println("***********8 args.ResolverId == id empty")
 	}
 
 	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
@@ -592,7 +700,6 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.MvnPomFile)
 	}
 
-	//cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, mvnConfigCommandArgs)
 	cmdList = append(cmdList, mvnRunCommandArgs)
 
@@ -612,8 +719,6 @@ var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringIte
 
 func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println("================= GetRtMavenDeployerCommandArgs ======================")
-
 	var cmdList [][]string
 
 	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.DeployerId,
@@ -628,11 +733,34 @@ func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, rtMavenDeployerMvnConfigCommandArgs)
 
+	mvnDeployerMap := map[string]interface{}{
+		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
+		"PLUGIN_REPO_DEPLOY_SNAPSHOTS": args.MvnDeploySnapshots,
+		"PLUGIN_USERNAME":              args.Username,
+		"PLUGIN_PASSWORD":              args.Password,
+		"PLUGIN_URL":                   args.URL,
+	}
+	// convert mvnDeployerMap to json string
+	mvnDeployerJson, err := json.Marshal(mvnDeployerMap)
+	if err != nil {
+		return cmdList, err
+	}
+	// write mvnDeployerJson to file with name getDeployerIdFileName(args.DeployerId)
+	deployerIdFileName := getDeployerIdFileName(args.DeployerId)
+	err = os.WriteFile(deployerIdFileName, mvnDeployerJson, 0600)
+	if err != nil {
+		return cmdList, err
+	}
+
 	fmt.Println("=================")
 	fmt.Println(jfrogConfigAddConfigCommandArgs)
 	fmt.Println(rtMavenDeployerMvnConfigCommandArgs)
 
 	return cmdList, nil
+}
+
+func getDeployerIdFileName(deployerId string) string {
+	return deployerId + ".deployer_data" + ".json"
 }
 
 var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
@@ -642,8 +770,6 @@ var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringIte
 }
 
 func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
-
-	fmt.Println("=======================================")
 
 	var cmdList [][]string
 
@@ -656,17 +782,47 @@ func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
 		return cmdList, err
 	}
 
+	mvnResolverMap := map[string]interface{}{
+		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
+		"PLUGIN_REPO_RESOLVE_SNAPSHOTS": args.MvnResolveSnapshots,
+		"PLUGIN_USERNAME":               args.Username,
+		"PLUGIN_PASSWORD":               args.Password,
+		"PLUGIN_URL":                    args.URL,
+	}
+	// convert mvnResolverMap to json string
+	mvnResolverJson, err := json.Marshal(mvnResolverMap)
+	if err != nil {
+		return cmdList, err
+	}
+	// write mvnResolverJson to file with name getResolverIdFileName(args.ResolverId)
+	resolverIdFileName := getResolverIdFileName(args.ResolverId)
+	err = os.WriteFile(resolverIdFileName, mvnResolverJson, 0600)
+	if err != nil {
+		return cmdList, err
+	}
+
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, rtMavenDeployerCommandArgs)
-	//cmdList = append(cmdList, mvnRunCommandArgs)
 
-	fmt.Println("=================")
 	fmt.Println(jfrogConfigAddConfigCommandArgs)
 	fmt.Println(rtMavenDeployerCommandArgs)
 
-	//os.Exit(1)
-
 	return cmdList, nil
+}
+
+func getResolverIdFileName(deployerId string) string {
+	return deployerId + ".resolver_data" + ".json"
+}
+
+func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url string) []string {
+	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
+		return []string{}
+	}
+	if srvConfigStr == "" {
+		srvConfigStr = "tmpSrvConfig"
+	}
+	return []string{"config", "add", srvConfigStr, "--url=" + url,
+		"--user=" + userName, "--password=" + password, "--interactive=false"}
 }
 
 type JsonTagToExeFlagMapStringItem struct {
@@ -732,17 +888,6 @@ func AppendStringArg(argsList *[]string, argName string, argValue *string) {
 	}
 }
 
-func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url string) []string {
-	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
-		return []string{}
-	}
-	if srvConfigStr == "" {
-		srvConfigStr = "tmpSrvConfig"
-	}
-	return []string{"config", "add", srvConfigStr, "--url=" + url,
-		"--user=" + userName, "--password=" + password, "--interactive=false"}
-}
-
 var tagFieldCache sync.Map
 
 func precomputeTagMapping(structType reflect.Type) map[string]int {
@@ -799,9 +944,10 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 }
 
 const (
-	MvnCmd          = "mvn"
-	MvnConfig       = "mvn-config"
-	RtMavenDeployer = "rtMavenDeployer"
-	RtMavenResolver = "rtMavenResolver"
-	RtMavenRun      = "rtMavenRun"
+	MvnCmd             = "mvn"
+	MvnConfig          = "mvn-config"
+	RtMavenDeployer    = "rtMavenDeployer"
+	RtMavenResolver    = "rtMavenResolver"
+	RtMavenRun         = "rtMavenRun"
+	RtPublishBuildInfo = "rtPublishBuildInfo"
 )
