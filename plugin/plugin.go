@@ -56,22 +56,9 @@ type Args struct {
 	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
-	//// Cleanup parameters
-	//CleanupPattern string `envconfig:"PLUGIN_CLEANUP_PATTERN"`
 
 	// PLUGIN_COMMAND
 	Command string `envconfig:"PLUGIN_COMMAND"`
-
-	//// Xray parameters
-	//XrayWatchName   string `envconfig:"PLUGIN_XRAY_WATCH_NAME"`
-	//XrayBuildName   string `envconfig:"PLUGIN_XRAY_BUILD_NAME"`
-	//XrayBuildNumber string `envconfig:"PLUGIN_XRAY_BUILD_NUMBER"`
-	//
-	//// Docker parameters
-	//DockerImageName string `envconfig:"PLUGIN_DOCKER_IMAGE_NAME"`
-	//DockerRepo      string `envconfig:"PLUGIN_DOCKER_REPO"`
-	//DockerUsername  string `envconfig:"PLUGIN_DOCKER_USERNAME"`
-	//DockerPassword  string `envconfig:"PLUGIN_DOCKER_PASSWORD"`
 
 	// Maven parameters
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
@@ -291,39 +278,6 @@ func NativeJfCommandExec(ctx context.Context, args Args) ([]string, error) {
 	return cmdArgs, nil
 }
 
-func setupCommonArgs(cmdArgs []string, args Args) ([]string, error) {
-	// Add URL
-	cmdArgs = append(cmdArgs, fmt.Sprintf("--url=%s", args.URL))
-
-	// Add retries if set
-	if args.Retries != 0 {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
-	}
-
-	// Set authentication parameters
-	var err error
-	cmdArgs, err = setAuthParams(cmdArgs, args)
-	if err != nil {
-		return nil, err
-	}
-
-	// Handle insecure flag
-	insecure := parseBoolOrDefault(false, args.Insecure)
-	if insecure {
-		cmdArgs = append(cmdArgs, "--insecure-tls")
-	}
-
-	// Create PEM file if necessary
-	if args.PEMFileContents != "" && !insecure {
-		err := createPemFile(args.PEMFileContents, args.PEMFilePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return cmdArgs, nil
-}
-
 func publishBuildInfo(args Args) error {
 	if args.BuildName == "" || args.BuildNumber == "" {
 		return fmt.Errorf("both build name and build number need to be set when publishing build info")
@@ -524,7 +478,7 @@ var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
 	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
 	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
-	{"--insecure-tls=", "PLUGIN_INSECURE_TLS", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
 	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
 	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
 	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
@@ -544,6 +498,10 @@ var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStrin
 }
 
 func GetMavenCommandArgs(args Args) ([][]string, error) {
+
+	if args.MvnGoals == "" {
+		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
+	}
 
 	var cmdList [][]string
 
