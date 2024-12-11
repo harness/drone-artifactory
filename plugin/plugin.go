@@ -70,6 +70,11 @@ type Args struct {
 	ProjectKey          string `envconfig:"PLUGIN_PROJECT_KEY"`
 	OptionalArgs        string `envconfig:"PLUGIN_OPTIONAL_ARGS"`
 
+	DeployerId      string `envconfig:"PLUGIN_DEPLOYER_ID"`
+	ResolverId      string `envconfig:"PLUGIN_RESOLVER_ID"`
+	DeployArtifacts string `envconfig:"PLUGIN_DEPLOY_ARTIFACTS"`
+	ExcludePatterns string `envconfig:"PLUGIN_EXCLUDE_PATTERNS"`
+
 	// Gradle parameters
 	DeployIvyDesc   string `envconfig:"PLUGIN_DEPLOY_IVY_DESC"`
 	DeployMavenDesc string `envconfig:"PLUGIN_DEPLOY_MAVEN_DESC"`
@@ -78,11 +83,11 @@ type Args struct {
 	IvyDesc         string `envconfig:"PLUGIN_IVY_DESC_PATTERN"`
 	RepoDeploy      string `envconfig:"PLUGIN_REPO_DEPLOY"`
 	RepoResolve     string `envconfig:"PLUGIN_REPO_RESOLVE"`
-	ServerIdDeploy  string `envconfig:"PLUGIN_SERVER_ID_DEPLOY"`
-	ServerIdResolve string `envconfig:"PLUGIN_SERVER_ID_RESOLVE"`
-	UseWrapper      string `envconfig:"PLUGIN_USE_WRAPPER"`
-	GradleTasks     string `envconfig:"PLUGIN_TASKS"`
-	BuildFile       string `envconfig:"PLUGIN_BUILD_FILE"`
+	//ServerIdDeploy  string `envconfig:"PLUGIN_SERVER_ID_DEPLOY"`
+	//ServerIdResolve string `envconfig:"PLUGIN_SERVER_ID_RESOLVE"`
+	UseWrapper  string `envconfig:"PLUGIN_USE_WRAPPER"`
+	GradleTasks string `envconfig:"PLUGIN_TASKS"`
+	BuildFile   string `envconfig:"PLUGIN_BUILD_FILE"`
 }
 
 func Exec(ctx context.Context, args Args) error {
@@ -171,8 +176,10 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 	switch args.Command {
 	case MvnCmd:
 		commandsList, err = GetMavenCommandArgs(args)
-	case GradleCmd:
-		commandsList, err = GetGradleCommandArgs(args)
+	case RtMavenDeployer:
+		commandsList, err = GetRtMavenDeployerCommandArgs(args)
+	case RtMavenResolver:
+		commandsList, err = GetRtMavenResolverCommandArgs(args)
 	}
 
 	for _, cmd := range commandsList {
@@ -505,7 +512,8 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 
 	var cmdList [][]string
 
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs("tmpSrvConfig",
+		args.Username, args.Password, args.URL)
 
 	mvnConfigCommandArgs := []string{MvnConfig}
 	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
@@ -519,7 +527,7 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 		return cmdList, err
 	}
 	if len(args.MvnPomFile) > 0 {
-		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.BuildFile)
+		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.MvnPomFile)
 	}
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
@@ -529,55 +537,72 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--deploy-ivy-desc=", "PLUGIN_DEPLOY_IVY_DESC", false, false, nil, nil},
-	{"--deploy-maven-desc=", "PLUGIN_DEPLOY_MAVEN_DESC", false, false, nil, nil},
-	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
-	{"--ivy-artifacts-pattern=", "PLUGIN_IVY_ARTIFACTS_PATTERN", false, false, nil, nil},
-	{"--ivy-desc-pattern=", "PLUGIN_IVY_DESC_PATTERN", false, false, nil, nil},
-	{"--repo-deploy=", "PLUGIN_REPO_DEPLOY", false, false, nil, nil},
-	{"--repo-resolve=", "PLUGIN_REPO_RESOLVE", false, false, nil, nil},
-	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
-	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+	//{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
+	//{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
 	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
-	{"--uses-plugin=", "PLUGIN_USES_PLUGIN", false, false, nil, nil},
 }
 
-var GradleRunJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
-	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
-	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
-	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
-	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
-	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
-	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
-}
+func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 
-func GetGradleCommandArgs(args Args) ([][]string, error) {
+	fmt.Println("=======================================")
 
 	var cmdList [][]string
 
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.Username, args.Password, args.URL)
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.DeployerId,
+		args.Username, args.Password, args.URL)
 
-	gradleConfigCommandArgs := []string{GradleConfig}
-	err := PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
+	rtMavenDeployerCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&rtMavenDeployerCommandArgs, &args, RtMavenDeployerConfigCmdJsonTagToExeFlagMap)
 	if err != nil {
 		return cmdList, err
-	}
-
-	gradleTaskCommandArgs := []string{GradleCmd, args.GradleTasks}
-	err = PopulateArgs(&gradleTaskCommandArgs, &args, GradleRunJsonTagToExeFlagMapStringItemList)
-	if err != nil {
-		return cmdList, err
-	}
-
-	if len(args.BuildFile) > 0 {
-		gradleTaskCommandArgs = append(gradleTaskCommandArgs, "-b "+args.BuildFile)
 	}
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
-	cmdList = append(cmdList, gradleConfigCommandArgs)
-	cmdList = append(cmdList, gradleTaskCommandArgs)
+	cmdList = append(cmdList, rtMavenDeployerCommandArgs)
+	//cmdList = append(cmdList, mvnRunCommandArgs)
+
+	fmt.Println("=================")
+	fmt.Println(jfrogConfigAddConfigCommandArgs)
+	fmt.Println(rtMavenDeployerCommandArgs)
+
+	return cmdList, nil
+}
+
+var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
+	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+}
+
+func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
+
+	fmt.Println("=======================================")
+
+	var cmdList [][]string
+
+	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.ResolverId,
+		args.Username, args.Password, args.URL)
+
+	rtMavenDeployerCommandArgs := []string{MvnConfig}
+	err := PopulateArgs(&rtMavenDeployerCommandArgs, &args, RtMavenResolverConfigCmdJsonTagToExeFlagMap)
+	if err != nil {
+		return cmdList, err
+	}
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, rtMavenDeployerCommandArgs)
+	//cmdList = append(cmdList, mvnRunCommandArgs)
+
+	fmt.Println("=================")
+	fmt.Println(jfrogConfigAddConfigCommandArgs)
+	fmt.Println(rtMavenDeployerCommandArgs)
+
+	//os.Exit(1)
 
 	return cmdList, nil
 }
@@ -645,11 +670,13 @@ func AppendStringArg(argsList *[]string, argName string, argValue *string) {
 	}
 }
 
-func GetConfigAddConfigCommandArgs(userName, password, url string) []string {
+func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url string) []string {
 	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
 		return []string{}
 	}
-	srvConfigStr := "tmpSrvConfig"
+	if srvConfigStr == "" {
+		srvConfigStr = "tmpSrvConfig"
+	}
 	return []string{"config", "add", srvConfigStr, "--url=" + url,
 		"--user=" + userName, "--password=" + password, "--interactive=false"}
 }
@@ -710,8 +737,8 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 }
 
 const (
-	MvnCmd       = "mvn"
-	MvnConfig    = "mvn-config"
-	GradleCmd    = "gradle"
-	GradleConfig = "gradle-config"
+	MvnCmd          = "mvn"
+	MvnConfig       = "mvn-config"
+	RtMavenDeployer = "rtMavenDeployer"
+	RtMavenResolver = "rtMavenResolver"
 )
