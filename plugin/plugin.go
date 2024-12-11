@@ -703,8 +703,13 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 	cmdList = append(cmdList, mvnConfigCommandArgs)
 	cmdList = append(cmdList, mvnRunCommandArgs)
 
-	fmt.Println(mvnConfigCommandArgs)
-	fmt.Println(mvnRunCommandArgs)
+	//fmt.Println(mvnConfigCommandArgs)
+	//fmt.Println(mvnRunCommandArgs)
+
+	for i, cmd := range cmdList {
+		fmt.Println(i, " --> ", cmd)
+	}
+
 	return cmdList, nil
 }
 
