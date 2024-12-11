@@ -567,7 +567,7 @@ var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapString
 
 func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println(">>>>>>>>>>>>>> xxx GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>> chcbh GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
 
 	if args.MvnGoals == "" {
 		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
@@ -588,56 +588,11 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 		return cmdList, err
 	}
 
-	if args.ResolverId != "" {
-		resolverInfoFile := getResolverIdFileName(args.ResolverId)
-		resolverInfo, err := os.ReadFile(resolverInfoFile)
+	err = GetResolverCmd(args, ResolverIdType, "PLUGIN_REPO_RESOLVE_RELEASES", "PLUGIN_REPO_RESOLVE_SNAPSHOTS",
+		"--repo-resolve-releases=", "--repo-resolve-snapshots=", &mvnConfigCommandArgs, &cmdList)
 
-		if err == nil {
-			var resolverInfoMap map[string]interface{}
-			err = json.Unmarshal(resolverInfo, &resolverInfoMap)
-			if err != nil {
-				log.Println("Error unmarshalling resolverInfo ", resolverInfo, err.Error())
-			}
-
-			//		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
-			//		"PLUGIN_REPO_RESOLVE_SNAPSHOTS": args.MvnResolveSnapshots,
-			if tmpReleaseRepo, ok := resolverInfoMap["PLUGIN_REPO_RESOLVE_RELEASES"]; ok {
-				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-releases="+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
-			}
-			if tmpReleaseRepo, ok := resolverInfoMap["PLUGIN_REPO_RESOLVE_SNAPSHOTS"]; ok {
-				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-snapshots="+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
-			}
-
-			userName := ""
-			if tmpUserName, ok := resolverInfoMap["PLUGIN_USERNAME"]; ok {
-				userName = tmpUserName.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
-			}
-
-			password := ""
-			if tmpPassword, ok := resolverInfoMap["PLUGIN_PASSWORD"]; ok {
-				password = tmpPassword.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
-			}
-
-			url := ""
-			if tmpUrl, ok := resolverInfoMap["PLUGIN_URL"]; ok {
-				url = tmpUrl.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_URL ")
-			}
-
-			resolverConfigComand := GetConfigAddConfigCommandArgs(args.ResolverId, userName, password, url)
-			cmdList = append(cmdList, resolverConfigComand)
-		} else {
-			log.Println("************ Error reading resolverInfoFile ", resolverInfoFile, err.Error())
-		}
-	} else {
-		fmt.Println("***********8 args.ResolverId == id empty")
+	if err != nil {
+		return cmdList, err
 	}
 
 	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
@@ -651,9 +606,6 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
 	cmdList = append(cmdList, mvnConfigCommandArgs)
 	cmdList = append(cmdList, mvnRunCommandArgs)
-
-	//fmt.Println(mvnConfigCommandArgs)
-	//fmt.Println(mvnRunCommandArgs)
 
 	for i, cmd := range cmdList {
 		fmt.Println(i, " --> ", cmd)
