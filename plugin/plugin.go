@@ -567,7 +567,7 @@ var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapString
 
 func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println(">>>>>>>>>>>>>> mmm GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>> xxx GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
 
 	if args.MvnGoals == "" {
 		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
@@ -581,63 +581,12 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 		return cmdList, err
 	}
 
-	if args.DeployerId != "" {
-		deployerInfoFile := getDeployerIdFileName(args.DeployerId)
-		deployerInfo, err := os.ReadFile(deployerInfoFile)
+	err = GetResolverCmd(args, DeployerIdType, "PLUGIN_REPO_DEPLOY_RELEASES", "PLUGIN_REPO_DEPLOY_SNAPSHOTS",
+		"--repo-deploy-releases=", "--repo-deploy-snapshots=", &mvnConfigCommandArgs, &cmdList)
 
-		if err == nil {
-			var deployerInfoMap map[string]interface{}
-			err = json.Unmarshal(deployerInfo, &deployerInfoMap)
-			if err != nil {
-				log.Println("Error unmarshalling deployerInfo ", deployerInfo, err.Error())
-			}
-
-			// 		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
-			//		"PLUGIN_REPO_DEPLOY_SNAPSHOTS": args.MvnDeploySnapshots,
-			if tmpReleaseRepo, ok := deployerInfoMap["PLUGIN_REPO_DEPLOY_RELEASES"]; ok {
-				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-releases="+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
-			}
-			if tmpReleaseRepo, ok := deployerInfoMap["PLUGIN_REPO_DEPLOY_SNAPSHOTS"]; ok {
-				mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-snapshots="+tmpReleaseRepo.(string))
-				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
-			}
-
-			userName := ""
-			if tmpUserName, ok := deployerInfoMap["PLUGIN_USERNAME"]; ok {
-				userName = tmpUserName.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
-			}
-
-			password := ""
-			if tmpPassword, ok := deployerInfoMap["PLUGIN_PASSWORD"]; ok {
-				password = tmpPassword.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
-			}
-
-			url := ""
-			if tmpUrl, ok := deployerInfoMap["PLUGIN_URL"]; ok {
-				url = tmpUrl.(string)
-			} else {
-				return cmdList, fmt.Errorf("Unable to to find  PLUGIN_URL ")
-			}
-
-			deployerConfigComand := GetConfigAddConfigCommandArgs(args.DeployerId, userName, password, url)
-			cmdList = append(cmdList, deployerConfigComand)
-
-		} else {
-			log.Println("************ Error reading deployerInfoFile ", deployerInfoFile, err.Error())
-		}
-	} else {
-		fmt.Println("***********8 args.DeployerId == id empty")
+	if err != nil {
+		return cmdList, err
 	}
-
-	//resolverId, err := GetFieldAddress[*Args, string](&args, "PLUGIN_RESOLVER_ID")
-	//if err != nil {
-	//	fmt.Println("Error getting resolverId ", err)
-	//}
 
 	if args.ResolverId != "" {
 		resolverInfoFile := getResolverIdFileName(args.ResolverId)
@@ -711,6 +660,81 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 	}
 
 	return cmdList, nil
+}
+
+const (
+	DeployerIdType = "deployer"
+	ResolverIdType = "resolver"
+)
+
+func GetResolverCmd(args Args, resolverIdType string,
+	releaseRepoPluginParam, snapShotRepoPluginParam,
+	releaseCliFlag, snapShotCliFlag string,
+	mvnConfigCommandArgs *[]string, cmdList *[][]string) error {
+
+	resolverId := ""
+	infoFile := ""
+
+	if resolverIdType == DeployerIdType {
+		resolverId = args.DeployerId
+		infoFile = getDeployerIdFileName(args.DeployerId)
+	}
+
+	if resolverIdType == ResolverIdType {
+		resolverId = args.ResolverId
+		infoFile = getResolverIdFileName(args.ResolverId)
+	}
+
+	if resolverId != "" {
+		resolverInfo, err := os.ReadFile(infoFile)
+
+		if err == nil {
+			var infoMap map[string]interface{}
+			err = json.Unmarshal(resolverInfo, &infoMap)
+			if err != nil {
+				log.Println("Error unmarshalling resolverInfo ", resolverInfo, err.Error())
+			}
+
+			if tmpReleaseRepo, ok := infoMap[releaseRepoPluginParam]; ok {
+				*mvnConfigCommandArgs = append(*mvnConfigCommandArgs, releaseCliFlag+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+			if tmpReleaseRepo, ok := infoMap[snapShotRepoPluginParam]; ok {
+				*mvnConfigCommandArgs = append(*mvnConfigCommandArgs, snapShotCliFlag+tmpReleaseRepo.(string))
+				fmt.Println("tmpReleaseRepo: ", tmpReleaseRepo)
+			}
+
+			userName := ""
+			if tmpUserName, ok := infoMap["PLUGIN_USERNAME"]; ok {
+				userName = tmpUserName.(string)
+			} else {
+				return fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
+			}
+
+			password := ""
+			if tmpPassword, ok := infoMap["PLUGIN_PASSWORD"]; ok {
+				password = tmpPassword.(string)
+			} else {
+				return fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
+			}
+
+			url := ""
+			if tmpUrl, ok := infoMap["PLUGIN_URL"]; ok {
+				url = tmpUrl.(string)
+			} else {
+				return fmt.Errorf("Unable to to find  PLUGIN_URL ")
+			}
+
+			resolverConfigComand := GetConfigAddConfigCommandArgs(resolverId, userName, password, url)
+			*cmdList = append(*cmdList, resolverConfigComand)
+
+		} else {
+			log.Println("************ Error reading infoFile ", infoFile, err.Error())
+		}
+	} else {
+		fmt.Println("***********8 resolverId == id empty")
+	}
+	return nil
 }
 
 var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
