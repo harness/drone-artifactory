@@ -190,6 +190,12 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 	}
 
 	for _, cmd := range commandsList {
+
+		fmt.Println("Executing command of len ", len(cmd))
+		if len(cmd) == 0 {
+			continue
+		}
+
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
 		err := ExecCommand(args, execArgs)
@@ -519,11 +525,14 @@ func GetMavenCommandArgs(args Args) ([][]string, error) {
 
 	var cmdList [][]string
 
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs("tmpSrvConfig",
-		args.Username, args.Password, args.URL)
+	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs("tmpSrvConfig",
+		args.Username, args.Password, args.URL, args.AccessToken)
+	if err != nil {
+		return cmdList, err
+	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
+	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
 	}
@@ -570,7 +579,7 @@ var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapString
 
 func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println(">>>>>>>>>>>>>> chcbh GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>> a8aja GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
 
 	if args.MvnGoals == "" {
 		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
@@ -595,10 +604,11 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 		"--repo-resolve-releases=", "--repo-resolve-snapshots=", &mvnConfigCommandArgs, &cmdList)
 
 	if err != nil {
+		fmt.Println("Error in GetResolverCmd ", err)
 		return cmdList, err
 	}
 
-	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
+	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals, "-X"}
 	err = PopulateArgs(&mvnRunCommandArgs, &args, RtMavenRunCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
@@ -676,7 +686,11 @@ func GetResolverCmd(args Args, resolverIdType string,
 				return fmt.Errorf("Unable to to find  PLUGIN_URL ")
 			}
 
-			resolverConfigCommand := GetConfigAddConfigCommandArgs(resolverId, userName, password, url)
+			resolverConfigCommand, err1 := GetConfigAddConfigCommandArgs(resolverId, userName, password, url,
+				args.AccessToken)
+			if err1 != nil {
+				return err1
+			}
 			*cmdList = append(*cmdList, resolverConfigCommand)
 
 		}
@@ -698,19 +712,8 @@ var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringIte
 
 func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 
+	fmt.Println("Setting up deployer")
 	var cmdList [][]string
-
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.DeployerId,
-		args.Username, args.Password, args.URL)
-
-	rtMavenDeployerMvnConfigCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&rtMavenDeployerMvnConfigCommandArgs, &args, RtMavenDeployerConfigCmdJsonTagToExeFlagMap)
-	if err != nil {
-		return cmdList, err
-	}
-
-	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
-	cmdList = append(cmdList, rtMavenDeployerMvnConfigCommandArgs)
 
 	mvnDeployerMap := map[string]interface{}{
 		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
@@ -718,22 +721,17 @@ func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 		"PLUGIN_USERNAME":              args.Username,
 		"PLUGIN_PASSWORD":              args.Password,
 		"PLUGIN_URL":                   args.URL,
+		"PLUGIN_ACCESS_TOKEN":          args.AccessToken,
 	}
-	// convert mvnDeployerMap to json string
 	mvnDeployerJson, err := json.Marshal(mvnDeployerMap)
 	if err != nil {
 		return cmdList, err
 	}
-	// write mvnDeployerJson to file with name getDeployerIdFileName(args.DeployerId)
 	deployerIdFileName := getDeployerIdFileName(args.DeployerId)
 	err = os.WriteFile(deployerIdFileName, mvnDeployerJson, 0600)
 	if err != nil {
 		return cmdList, err
 	}
-
-	fmt.Println("=================")
-	fmt.Println(jfrogConfigAddConfigCommandArgs)
-	fmt.Println(rtMavenDeployerMvnConfigCommandArgs)
 
 	return cmdList, nil
 }
@@ -750,16 +748,9 @@ var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringIte
 
 func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
 
+	fmt.Println("Setting up Resolver")
+
 	var cmdList [][]string
-
-	jfrogConfigAddConfigCommandArgs := GetConfigAddConfigCommandArgs(args.ResolverId,
-		args.Username, args.Password, args.URL)
-
-	rtMavenDeployerCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&rtMavenDeployerCommandArgs, &args, RtMavenResolverConfigCmdJsonTagToExeFlagMap)
-	if err != nil {
-		return cmdList, err
-	}
 
 	mvnResolverMap := map[string]interface{}{
 		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
@@ -767,24 +758,17 @@ func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
 		"PLUGIN_USERNAME":               args.Username,
 		"PLUGIN_PASSWORD":               args.Password,
 		"PLUGIN_URL":                    args.URL,
+		"PLUGIN_ACCESS_TOKEN":           args.AccessToken,
 	}
-	// convert mvnResolverMap to json string
 	mvnResolverJson, err := json.Marshal(mvnResolverMap)
 	if err != nil {
 		return cmdList, err
 	}
-	// write mvnResolverJson to file with name getResolverIdFileName(args.ResolverId)
 	resolverIdFileName := getResolverIdFileName(args.ResolverId)
 	err = os.WriteFile(resolverIdFileName, mvnResolverJson, 0600)
 	if err != nil {
 		return cmdList, err
 	}
-
-	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
-	cmdList = append(cmdList, rtMavenDeployerCommandArgs)
-
-	fmt.Println(jfrogConfigAddConfigCommandArgs)
-	fmt.Println(rtMavenDeployerCommandArgs)
 
 	return cmdList, nil
 }
@@ -827,15 +811,26 @@ func GetRtPublishBuildInfoCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url string) []string {
-	if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
-		return []string{}
-	}
+func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url, accessToken string) ([]string, error) {
+
+	//if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
+	//	return []string{}
+	//}
+
 	if srvConfigStr == "" {
 		srvConfigStr = "tmpSrvConfig"
 	}
-	return []string{"config", "add", srvConfigStr, "--url=" + url,
-		"--user=" + userName, "--password=" + password, "--interactive=false"}
+
+	if userName != "" {
+		return []string{"config", "add", srvConfigStr, "--url=" + url,
+			"--user=" + userName, "--password=" + password, "--interactive=false"}, nil
+	}
+	if accessToken != "" {
+		return []string{"config", "add", srvConfigStr, "--url=" + url,
+			"--access-token=" + accessToken, "--interactive=false"}, nil
+	}
+
+	return []string{""}, fmt.Errorf("unknown authentication method")
 }
 
 type JsonTagToExeFlagMapStringItem struct {
@@ -966,4 +961,5 @@ const (
 	RtPublishBuildInfo = "rtPublishBuildInfo"
 	DeployerIdType     = "deployer"
 	ResolverIdType     = "resolver"
+	AccesTokenAuth     = "access-token"
 )
