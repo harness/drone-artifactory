@@ -80,20 +80,31 @@ func Exec(ctx context.Context, args Args) error {
 	commandsList := [][]string{}
 	var err error
 
-	if args.BuildTool == "" {
-		enableProxy := parseBoolOrDefault(false, args.EnableProxy)
-		if enableProxy {
-			log.Printf("setting proxy config for upload")
-			setSecureConnectProxies()
+	// create pem file
+	insecure := parseBoolOrDefault(false, args.Insecure)
+	if args.PEMFileContents != "" && !insecure {
+		createPemFileErr := createPemFile(args.PEMFileContents, args.PEMFilePath)
+		if createPemFileErr != nil {
+			return createPemFileErr
 		}
+	}
+
+	// enable proxy
+	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
+	if enableProxy {
+		log.Printf("setting proxy config for upload")
+		setSecureConnectProxies()
+	}
+
+	if args.BuildTool == "" {
 		cmdArgs, err = GetNativeJfCommandArgs(ctx, args)
 		commandsList = append(commandsList, cmdArgs)
 	} else {
-		commandsList, err = handleRtCommand(ctx, args)
+		commandsList, err = GetRtCommandsList(ctx, args)
 	}
 
 	if err != nil {
-		fmt.Println("Error Unable to run err = ", err)
+		log.Println("Error Unable to run err = ", err)
 		return err
 	}
 
@@ -110,46 +121,13 @@ func Exec(ctx context.Context, args Args) error {
 	return nil
 }
 
-func ExecCommand(args Args, cmdArgs []string) error {
-
-	cmdStr := strings.Join(cmdArgs[:], " ")
-
-	shell, shArg := getShell()
-
-	fmt.Println()
-	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
-	fmt.Println()
-
-	cmd := exec.Command(shell, shArg, cmdStr)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	trace(cmd)
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(" Error: ", err)
-		return err
-	}
-
-	if args.PublishBuildInfo {
-		if err := publishBuildInfo(args); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func GetNativeJfCommandArgs(ctx context.Context, args Args) ([]string, error) {
 
 	if args.URL == "" {
 		return []string{}, fmt.Errorf("url needs to be set")
 	}
 
-	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	cmdArgs := []string{"rt", "u", fmt.Sprintf("--url %s", args.URL)}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
@@ -180,36 +158,6 @@ func GetNativeJfCommandArgs(ctx context.Context, args Args) ([]string, error) {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--build-name='%s'", args.BuildName))
 	}
 
-	// create pem file
-	if args.PEMFileContents != "" && !insecure {
-		var path string
-		// figure out path to write pem file
-		if args.PEMFilePath == "" {
-			if runtime.GOOS == "windows" {
-				path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
-			} else {
-				path = "/root/.jfrog/security/certs/cert.pem"
-			}
-		} else {
-			path = args.PEMFilePath
-		}
-		fmt.Printf("Creating pem file at %q\n", path)
-		// write pen contents to path
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			// remove filename from path
-			dir := filepath.Dir(path)
-			pemFolderErr := os.MkdirAll(dir, 0700)
-			if pemFolderErr != nil {
-				return []string{}, fmt.Errorf("error creating pem folder: %s", pemFolderErr)
-			}
-			// write pem contents
-			pemWriteErr := os.WriteFile(path, []byte(args.PEMFileContents), 0600)
-			if pemWriteErr != nil {
-				return []string{}, fmt.Errorf("error writing pem file: %s", pemWriteErr)
-			}
-			fmt.Printf("Successfully created pem file at %q\n", path)
-		}
-	}
 	// Take in spec file or use source/target arguments
 	if args.Spec != "" {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=%s", args.Spec))
@@ -230,6 +178,39 @@ func GetNativeJfCommandArgs(ctx context.Context, args Args) ([]string, error) {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	}
 	return cmdArgs, nil
+}
+
+// createPemFile writes the PEM file to the specified path
+func createPemFile(pemContents, pemFilePath string) error {
+	var path string
+	// Determine path to write pem file
+	if pemFilePath == "" {
+		if runtime.GOOS == "windows" {
+			path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
+		} else {
+			path = "/root/.jfrog/security/certs/cert.pem"
+		}
+	} else {
+		path = pemFilePath
+	}
+
+	fmt.Printf("Creating pem file at %q\n", path)
+
+	// Create folder and write PEM contents
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		dir := filepath.Dir(path)
+		err := os.MkdirAll(dir, 0700)
+		if err != nil {
+			return fmt.Errorf("failed to create pem folder: %v", err)
+		}
+	}
+
+	err := os.WriteFile(path, []byte(pemContents), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to create pem file %v", err)
+	}
+
+	return nil
 }
 
 func publishBuildInfo(args Args) error {
@@ -300,39 +281,6 @@ func filterTargetProps(rawProps string) string {
 	}
 
 	return strings.Join(validPairs, ",")
-}
-
-// createPemFile writes the PEM file to the specified path
-func createPemFile(pemContents, pemFilePath string) error {
-	var path string
-	// Determine path to write pem file
-	if pemFilePath == "" {
-		if runtime.GOOS == "windows" {
-			path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
-		} else {
-			path = "/root/.jfrog/security/certs/cert.pem"
-		}
-	} else {
-		path = pemFilePath
-	}
-
-	fmt.Printf("Creating pem file at %q\n", path)
-
-	// Create folder and write PEM contents
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		dir := filepath.Dir(path)
-		err := os.MkdirAll(dir, 0700)
-		if err != nil {
-			return fmt.Errorf("failed to create pem folder: %v", err)
-		}
-	}
-
-	err := os.WriteFile(path, []byte(pemContents), 0600)
-	if err != nil {
-		return fmt.Errorf("failed to create pem file %v", err)
-	}
-
-	return nil
 }
 
 // sanitizeURL trims the URL to include only up to the '/artifactory/' path.
@@ -427,13 +375,47 @@ func copyEnvVariableIfExists(src string, dest string) {
 	}
 }
 
-func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
-	fmt.Println("Handling rt command handleRtCommand")
+func ExecCommand(args Args, cmdArgs []string) error {
+
+	cmdStr := strings.Join(cmdArgs[:], " ")
+
+	shell, shArg := getShell()
+
+	log.Println()
+	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
+	log.Println()
+
+	cmd := exec.Command(shell, shArg, cmdStr)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	trace(cmd)
+
+	err := cmd.Run()
+	if err != nil {
+		log.Println(" Error: ", err)
+		return err
+	}
+
+	if args.PublishBuildInfo {
+		if err := publishBuildInfo(args); err != nil {
+			fmt.Println("Error publishing build info: ", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func GetRtCommandsList(ctx context.Context, args Args) ([][]string, error) {
+	log.Println("Handling rt command handleRtCommand")
 	commandsList := [][]string{}
 	var err error
 
 	if args.BuildTool == MvnCmd && (args.Command == "" || args.Command == "build") {
-		fmt.Println("first handlers")
+		log.Println("first handlers")
 		commandsList, err = GetMavenBuildCommandArgs(args)
 	}
 
@@ -444,37 +426,12 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 	return commandsList, err
 }
 
-var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
-	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
-	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
-	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
-	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
-	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
-	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
-	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
-}
-
-var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
-	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
-	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
-	{"--repo-deploy-releases=", "PLUGIN_DEPLOY_RELEASE_REPO", false, false, nil, nil},
-	{"--repo-deploy-snapshots=", "PLUGIN_DEPLOY_SNAPSHOT_REPO", false, false, nil, nil},
-	{"--repo-resolve-releases=", "PLUGIN_RESOLVE_RELEASE_REPO", false, false, nil, nil},
-	{"--repo-resolve-snapshots=", "PLUGIN_RESOLVE_SNAPSHOT_REPO", false, false, nil, nil},
-	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
-	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
-	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
-}
-
 func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 
-	fmt.Println("GetMavenCommandArgs 222222222222")
 	var cmdList [][]string
 
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(args.ResolverId,
-		args.Username, args.Password, args.URL, args.AccessToken)
+		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {
 		return cmdList, err
 	}
@@ -502,23 +459,22 @@ func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 }
 
 func GetMavenPublishCommand(args Args) ([][]string, error) {
-	fmt.Println("GetMavenPublishCommand 4355555555555555")
 
 	var cmdList [][]string
 	var jfrogConfigAddConfigCommandArgs []string
 
 	tmpServerId := "tmpSrvConfig"
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
-		args.Username, args.Password, args.URL, args.AccessToken)
+		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {
-		fmt.Println("GetConfigAddConfigCommandArgs error: ", err)
+		log.Println("GetConfigAddConfigCommandArgs error: ", err)
 		return cmdList, err
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
-		fmt.Println("PopulateArgs error: ", err)
+		log.Println("PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -526,7 +482,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 		"--server-id=" + tmpServerId}
 	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
 	if err != nil {
-		fmt.Println("PopulateArgs error: ", err)
+		log.Println("PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -534,7 +490,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 	cmdList = append(cmdList, mvnConfigCommandArgs)
 	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
 
-	//fmt.Println(cmdList)
+	//log.Println(cmdList)
 	//os.Exit(0)
 
 	return cmdList, nil
@@ -545,22 +501,47 @@ var RtBuildInfoPublishCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
 }
 
 func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
-	accessToken string) ([]string, error) {
+	accessToken, apiKey string) ([]string, error) {
 
 	if srvConfigStr == "" {
 		srvConfigStr = "tmpSrvConfig"
 	}
 
-	if userName != "" {
-		return []string{"config", "add", srvConfigStr, "--url=" + url,
-			"--user=" + userName, "--password=" + password, "--interactive=false"}, nil
-	}
-	if accessToken != "" {
-		return []string{"config", "add", srvConfigStr, "--url=" + url,
-			"--access-token=" + accessToken, "--interactive=false"}, nil
+	authParams, err := setAuthParams([]string{}, Args{Username: userName,
+		Password: password, AccessToken: accessToken, APIKey: apiKey})
+	if err != nil {
+		fmt.Println("setAuthParams error: ", err)
+		return []string{""}, err
 	}
 
-	return []string{""}, fmt.Errorf("unknown authentication method")
+	cfgCommand := []string{"config", "add", srvConfigStr, "--url=" + url}
+	cfgCommand = append(cfgCommand, authParams...)
+	cfgCommand = append(cfgCommand, "--interactive=false")
+	return cfgCommand, nil
+}
+
+var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
+	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
+	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
+	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+}
+
+var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+	{"--repo-deploy-releases=", "PLUGIN_DEPLOY_RELEASE_REPO", false, false, nil, nil},
+	{"--repo-deploy-snapshots=", "PLUGIN_DEPLOY_SNAPSHOT_REPO", false, false, nil, nil},
+	{"--repo-resolve-releases=", "PLUGIN_RESOLVE_RELEASE_REPO", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_RESOLVE_SNAPSHOT_REPO", false, false, nil, nil},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
 }
 
 type JsonTagToExeFlagMapStringItem struct {
@@ -582,25 +563,25 @@ func PopulateArgs(tmpCommandsList *[]string, args *Args,
 
 		if err != nil {
 			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-				fmt.Println("GetFieldAddress error: ", err)
+				log.Println("GetFieldAddress error: ", err)
 				return err
 			}
-			fmt.Println("GetFieldAddress error: ", err)
+			log.Println("GetFieldAddress error: ", err)
 			continue
 		}
 
 		if pluginArgValue == nil {
 			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-				fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+				log.Println("missing mandatory field: ", pluginArgJsonTag)
 				return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
 			}
-			fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+			log.Println("missing mandatory field: ", pluginArgJsonTag)
 			continue
 		}
 
 		if pluginArgValue == nil &&
 			jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-			fmt.Println("missing mandatory field: ", pluginArgJsonTag)
+			log.Println("missing mandatory field: ", pluginArgJsonTag)
 			return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
 		}
 		AppendStringArg(tmpCommandsList, flagName, pluginArgValue)
@@ -612,12 +593,12 @@ func PopulateArgs(tmpCommandsList *[]string, args *Args,
 func AppendStringArg(argsList *[]string, argName string, argValue *string) {
 
 	if argsList == nil {
-		fmt.Println("argsList is nil")
+		log.Println("argsList is nil")
 		return
 	}
 
 	if argValue == nil {
-		fmt.Println("argValue is nil")
+		log.Println("argValue is nil")
 		return
 	}
 
@@ -682,14 +663,7 @@ func GetFieldAddress[ST, VT any](args ST, argJsonTag string) (*VT, error) {
 }
 
 const (
-	MvnCmd             = "mvn"
-	MvnConfig          = "mvn-config"
-	BuildPublish       = "build-publish"
-	RtMavenDeployer    = "rtMavenDeployer"
-	RtMavenResolver    = "rtMavenResolver"
-	RtMavenRun         = "rtMavenRun"
-	RtPublishBuildInfo = "rtPublishBuildInfo"
-	DeployerIdType     = "deployer"
-	ResolverIdType     = "resolver"
-	AccesTokenAuth     = "access-token"
+	MvnCmd       = "mvn"
+	MvnConfig    = "mvn-config"
+	BuildPublish = "build-publish"
 )
