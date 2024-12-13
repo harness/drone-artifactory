@@ -608,7 +608,7 @@ func GetMavenRunCommandArgs(args Args) ([][]string, error) {
 		return cmdList, err
 	}
 
-	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals, "-X"}
+	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
 	err = PopulateArgs(&mvnRunCommandArgs, &args, RtMavenRunCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
@@ -662,32 +662,27 @@ func GetResolverCmd(args Args, resolverIdType string,
 				*mvnConfigCommandArgs = append(*mvnConfigCommandArgs, snapShotCliFlag+tmpReleaseRepo.(string))
 			}
 
-			userName := ""
-			if tmpUserName, ok := infoMap["PLUGIN_USERNAME"]; ok {
-				userName = tmpUserName.(string)
-			} else {
-				fmt.Println("Unable to to find  PLUGIN_USERNAME ")
-				return fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
+			userName, password, isUserNamePasswordAuth := IsAuthUserNamePassword(infoMap)
+			accessToken, isAccessTokenAuth := IsAuthAccessToken(infoMap)
+
+			if !(isUserNamePasswordAuth || isAccessTokenAuth) {
+				return fmt.Errorf("Insufficient Auth info")
 			}
 
-			password := ""
-			if tmpPassword, ok := infoMap["PLUGIN_PASSWORD"]; ok {
-				password = tmpPassword.(string)
+			artifactsUrl := ""
+			tmpUrl, isUrlOk := infoMap["PLUGIN_URL"]
+			if isUrlOk {
+				artifactsUrl = tmpUrl.(string)
 			} else {
-				fmt.Println("Unable to to find  PLUGIN_PASSWORD ")
-				return fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
+				artifactsUrl = args.URL
 			}
 
-			url := ""
-			if tmpUrl, ok := infoMap["PLUGIN_URL"]; ok {
-				url = tmpUrl.(string)
-			} else {
-				fmt.Println("Unable to to find  PLUGIN_URL ")
-				return fmt.Errorf("Unable to to find  PLUGIN_URL ")
+			if len(artifactsUrl) == 0 {
+				fmt.Println("Url is empty")
 			}
 
-			resolverConfigCommand, err1 := GetConfigAddConfigCommandArgs(resolverId, userName, password, url,
-				args.AccessToken)
+			resolverConfigCommand, err1 := GetConfigAddConfigCommandArgs(resolverId, userName, password, artifactsUrl,
+				accessToken)
 			if err1 != nil {
 				return err1
 			}
@@ -699,6 +694,36 @@ func GetResolverCmd(args Args, resolverIdType string,
 		return fmt.Errorf("ResolverId is empty")
 	}
 	return nil
+}
+
+func IsAuthAccessToken(infoMap map[string]interface{}) (string, bool) {
+	accessToken := ""
+	if tmpAccessToken, ok := infoMap["PLUGIN_ACCESS_TOKEN"]; ok {
+		accessToken = tmpAccessToken.(string)
+	} else {
+		fmt.Println("Unable to to find  PLUGIN_ACCESS")
+		//return fmt.Errorf("Unable to to find  PLUGIN_ACCESS
+	}
+	return accessToken, len(accessToken) > 0
+}
+func IsAuthUserNamePassword(infoMap map[string]interface{}) (string, string, bool) {
+	userName := ""
+	if tmpUserName, ok := infoMap["PLUGIN_USERNAME"]; ok {
+		userName = tmpUserName.(string)
+	} else {
+		fmt.Println("Unable to to find  PLUGIN_USERNAME ")
+		//return fmt.Errorf("Unable to to find  PLUGIN_USERNAME ")
+	}
+
+	password := ""
+	if tmpPassword, ok := infoMap["PLUGIN_PASSWORD"]; ok {
+		password = tmpPassword.(string)
+	} else {
+		fmt.Println("Unable to to find  PLUGIN_PASSWORD ")
+		//return fmt.Errorf("Unable to to find  PLUGIN_PASSWORD ")
+	}
+
+	return userName, password, len(userName) > 0 && len(password) > 0
 }
 
 var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
@@ -722,6 +747,7 @@ func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
 		"PLUGIN_PASSWORD":              args.Password,
 		"PLUGIN_URL":                   args.URL,
 		"PLUGIN_ACCESS_TOKEN":          args.AccessToken,
+		"PLUGIN_API_KEY":               args.APIKey,
 	}
 	mvnDeployerJson, err := json.Marshal(mvnDeployerMap)
 	if err != nil {
@@ -759,6 +785,7 @@ func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
 		"PLUGIN_PASSWORD":               args.Password,
 		"PLUGIN_URL":                    args.URL,
 		"PLUGIN_ACCESS_TOKEN":           args.AccessToken,
+		"PLUGIN_API_KEY":                args.APIKey,
 	}
 	mvnResolverJson, err := json.Marshal(mvnResolverMap)
 	if err != nil {
@@ -811,7 +838,8 @@ func GetRtPublishBuildInfoCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url, accessToken string) ([]string, error) {
+func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
+	accessToken string) ([]string, error) {
 
 	//if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
 	//	return []string{}
