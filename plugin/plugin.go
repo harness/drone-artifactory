@@ -57,7 +57,7 @@ type Args struct {
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
 
-	// PLUGIN_COMMAND
+	// RT PLUGIN_COMMANDS
 	Command             string `envconfig:"PLUGIN_COMMAND"`
 	BuildTool           string `envconfig:"PLUGIN_BUILD_TOOL"`
 	ResolveReleaseRepo  string `envconfig:"PLUGIN_RESOLVE_RELEASE_REPO"`
@@ -71,67 +71,38 @@ type Args struct {
 	ProjectKey   string `envconfig:"PLUGIN_PROJECT_KEY"`
 	OptionalArgs string `envconfig:"PLUGIN_OPTIONAL_ARGS"`
 
-	DeployerId      string `envconfig:"PLUGIN_DEPLOYER_ID"`
-	ResolverId      string `envconfig:"PLUGIN_RESOLVER_ID"`
-	DeployArtifacts string `envconfig:"PLUGIN_DEPLOY_ARTIFACTS"`
-	ExcludePatterns string `envconfig:"PLUGIN_EXCLUDE_PATTERNS"`
-	IncludePatterns string `envconfig:"PLUGIN_INCLUDE_PATTERNS"`
-
-	// Gradle parameters
-	DeployIvyDesc   string `envconfig:"PLUGIN_DEPLOY_IVY_DESC"`
-	DeployMavenDesc string `envconfig:"PLUGIN_DEPLOY_MAVEN_DESC"`
-	Global          string `envconfig:"PLUGIN_GLOBAL"`
-	IvyArtifacts    string `envconfig:"PLUGIN_IVY_ARTIFACTS_PATTERN"`
-	IvyDesc         string `envconfig:"PLUGIN_IVY_DESC_PATTERN"`
-	RepoDeploy      string `envconfig:"PLUGIN_REPO_DEPLOY"`
-	RepoResolve     string `envconfig:"PLUGIN_REPO_RESOLVE"`
-
-	RepoResolverOrDeployerId string `envconfig:"PLUGIN_REPO_RESOLVER_OR_DEPLOYER_ID"`
-
-	UseWrapper  string `envconfig:"PLUGIN_USE_WRAPPER"`
-	GradleTasks string `envconfig:"PLUGIN_TASKS"`
-	BuildFile   string `envconfig:"PLUGIN_BUILD_FILE"`
+	DeployerId string `envconfig:"PLUGIN_DEPLOYER_ID"`
+	ResolverId string `envconfig:"PLUGIN_RESOLVER_ID"`
 }
 
 func Exec(ctx context.Context, args Args) error {
 	var cmdArgs []string
+	commandsList := [][]string{}
 	var err error
 
-	switch {
-	case len(args.BuildTool) > 0:
-		fmt.Println("BuildTool ---- ", args.BuildTool)
-		_, err := handleRtCommand(ctx, args)
-		return err
-	default:
-		cmdArgs, err = NativeJfCommandExec(ctx, args)
+	if args.BuildTool == "" {
+		enableProxy := parseBoolOrDefault(false, args.EnableProxy)
+		if enableProxy {
+			log.Printf("setting proxy config for upload")
+			setSecureConnectProxies()
+		}
+		cmdArgs, err = GetNativeJfCommandArgs(ctx, args)
+		commandsList = append(commandsList, cmdArgs)
+	} else {
+		commandsList, err = handleRtCommand(ctx, args)
 	}
 
-	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
-	if enableProxy {
-		log.Printf("setting proxy config for upload")
-		setSecureConnectProxies()
-	}
-
-	cmdStr := strings.Join(cmdArgs[:], " ")
-
-	shell, shArg := getShell()
-
-	cmd := exec.Command(shell, shArg, cmdStr)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "JFROG_CLI_OFFER_CONFIG=false")
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	trace(cmd)
-
-	err = cmd.Run()
 	if err != nil {
+		fmt.Println("Error Unable to run err = ", err)
 		return err
 	}
 
-	// Call publishBuildInfo if PLUGIN_PUBLISH_BUILD_INFO is set to true
-	if args.PublishBuildInfo {
-		if err := publishBuildInfo(args); err != nil {
+	for _, cmd := range commandsList {
+		execArgs := []string{getJfrogBin()}
+		execArgs = append(execArgs, cmd...)
+		err := ExecCommand(args, execArgs)
+		if err != nil {
+			log.Println("Error Unable to run err = ", err)
 			return err
 		}
 	}
@@ -172,7 +143,7 @@ func ExecCommand(args Args, cmdArgs []string) error {
 	return nil
 }
 
-func NativeJfCommandExec(ctx context.Context, args Args) ([]string, error) {
+func GetNativeJfCommandArgs(ctx context.Context, args Args) ([]string, error) {
 
 	if args.URL == "" {
 		return []string{}, fmt.Errorf("url needs to be set")
@@ -469,23 +440,6 @@ func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
 	if args.BuildTool == MvnCmd && args.Command == "publish" {
 		commandsList, err = GetMavenPublishCommand(args)
 	}
-
-	for _, cmd := range commandsList {
-
-		fmt.Println("Executing command of len ", len(cmd))
-		if len(cmd) == 0 {
-			continue
-		}
-
-		execArgs := []string{getJfrogBin()}
-		execArgs = append(execArgs, cmd...)
-		err := ExecCommand(args, execArgs)
-		if err != nil {
-			return commandsList, err
-		}
-		fmt.Println()
-	}
-	fmt.Println()
 
 	return commandsList, err
 }
