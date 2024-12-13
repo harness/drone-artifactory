@@ -133,16 +133,16 @@ func TestGetMavenBuildCommandUserPassword(t *testing.T) {
 	args := Args{
 		Username:            "ab",
 		Password:            "cd",
-		BuildTool:           "mvn",
+		BuildTool:           RtMvnBuildTool,
 		MvnPomFile:          "pom.xml",
 		MvnGoals:            "clean install",
-		BuildName:           "t2",
-		BuildNumber:         "v1.0",
-		URL:                 "https://artifactory.test.io/artifactory/",
-		ResolverId:          "resolve_gen_maven_01",
-		ResolveReleaseRepo:  "mvn_repo_resolve_releases_01",
-		ResolveSnapshotRepo: "mvn_repo_resolve_snapshots_01",
-		DeployerId:          "deploy_gen_maven_01",
+		BuildName:           RtBuildName,
+		BuildNumber:         RtBuildNumber,
+		URL:                 RtUrlTestStr,
+		ResolverId:          RtRslvId,
+		ResolveReleaseRepo:  RtResolveRelRepo,
+		ResolveSnapshotRepo: RtResolveSnapshotRepo,
+		DeployerId:          RtDeployerId,
 	}
 	cmdList, err := GetMavenBuildCommandArgs(args)
 	if err != nil {
@@ -171,17 +171,17 @@ func TestGetMavenBuildCommandUserPassword(t *testing.T) {
 
 func TestGetMavenBuildCommandAccessToken(t *testing.T) {
 	args := Args{
-		AccessToken:         "qXsj28",
-		BuildTool:           "mvn",
+		AccessToken:         RtAccessToken,
+		BuildTool:           RtMvnBuildTool,
 		MvnPomFile:          "pom.xml",
 		MvnGoals:            "clean install",
-		BuildName:           "t2",
-		BuildNumber:         "v1.0",
-		URL:                 "https://artifactory.test.io/artifactory/",
-		ResolverId:          "resolve_gen_maven_01",
-		ResolveReleaseRepo:  "mvn_repo_resolve_releases_01",
-		ResolveSnapshotRepo: "mvn_repo_resolve_snapshots_01",
-		DeployerId:          "deploy_gen_maven_01",
+		BuildName:           RtBuildName,
+		BuildNumber:         RtBuildNumber,
+		URL:                 RtUrlTestStr,
+		ResolverId:          RtRslvId,
+		ResolveReleaseRepo:  RtResolveRelRepo,
+		ResolveSnapshotRepo: RtResolveSnapshotRepo,
+		DeployerId:          RtDeployerId,
 	}
 	cmdList, err := GetMavenBuildCommandArgs(args)
 	if err != nil {
@@ -211,13 +211,13 @@ func TestGetMavenPublishCommandUserNamePassword(t *testing.T) {
 		Username:           "ab",
 		Password:           "cd",
 		Command:            "publish",
-		BuildTool:          "mvn",
-		BuildName:          "t2",
-		BuildNumber:        "v1.0",
-		URL:                "https://artifactory.test.io/artifactory/",
-		DeployerId:         "deploy_gen_maven_01",
-		DeployReleaseRepo:  "mvn_repo_deploy_releases_01",
-		DeploySnapshotRepo: "mvn_repo_deploy_snapshots_01",
+		BuildTool:          RtMvnBuildTool,
+		BuildName:          RtBuildName,
+		BuildNumber:        RtBuildNumber,
+		URL:                RtUrlTestStr,
+		DeployerId:         RtDeployerId,
+		DeployReleaseRepo:  RtTestRelRepo,
+		DeploySnapshotRepo: RtTestSnapshotRepo,
 	}
 	cmdList, err := GetMavenPublishCommand(args)
 	if err != nil {
@@ -242,15 +242,15 @@ func TestGetMavenPublishCommandUserNamePassword(t *testing.T) {
 
 func TestGetMavenPublishCommandAccessToken(t *testing.T) {
 	args := Args{
-		AccessToken:        "qXsj28",
+		AccessToken:        RtAccessToken,
 		Command:            "publish",
-		BuildTool:          "mvn",
-		BuildName:          "t2",
-		BuildNumber:        "v1.0",
-		URL:                "https://artifactory.test.io/artifactory/",
-		DeployerId:         "deploy_gen_maven_01",
-		DeployReleaseRepo:  "mvn_repo_deploy_releases_01",
-		DeploySnapshotRepo: "mvn_repo_deploy_snapshots_01",
+		BuildTool:          RtMvnBuildTool,
+		BuildName:          RtBuildName,
+		BuildNumber:        RtBuildNumber,
+		URL:                RtUrlTestStr,
+		DeployerId:         RtDeployerId,
+		DeployReleaseRepo:  RtTestRelRepo,
+		DeploySnapshotRepo: RtTestSnapshotRepo,
 	}
 	cmdList, err := GetMavenPublishCommand(args)
 	if err != nil {
@@ -275,3 +275,17 @@ func TestGetMavenPublishCommandAccessToken(t *testing.T) {
 		}
 	}
 }
+
+const (
+	RtUrlTestStr          = "https://artifactory.test.io/artifactory/"
+	RtAccessToken         = "qXsj28"
+	RtMvnBuildTool        = "mvn"
+	RtBuildName           = "t2"
+	RtBuildNumber         = "v1.0"
+	RtDeployerId          = "deploy_gen_maven_01"
+	RtTestRelRepo         = "mvn_repo_deploy_releases_01"
+	RtTestSnapshotRepo    = "mvn_repo_deploy_snapshots_01"
+	RtRslvId              = "resolve_gen_maven_01"
+	RtResolveRelRepo      = "mvn_repo_resolve_releases_01"
+	RtResolveSnapshotRepo = "mvn_repo_resolve_snapshots_01"
+)
