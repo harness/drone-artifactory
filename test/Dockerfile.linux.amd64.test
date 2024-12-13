@@ -17,8 +17,6 @@ RUN apk add --no-cache \
     "$JRE_VERSION" \
     maven \
     curl \
-    docker \
-    docker-cli \
     && rm -rf /var/cache/apk/*
 
 # Install Gradle
@@ -33,10 +31,4 @@ RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.68.0
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
-# Add your custom plugin
-ADD release/linux/amd64/plugin /bin/
-
-# Expose Docker socket for CLI interaction
-VOLUME /var/run/docker.sock
-
-ENTRYPOINT ["/bin/plugin"]
+ENTRYPOINT ["bash"]
