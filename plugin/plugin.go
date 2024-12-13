@@ -59,7 +59,11 @@ type Args struct {
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
 
 	// PLUGIN_COMMAND
-	Command string `envconfig:"PLUGIN_COMMAND"`
+	Command             string `envconfig:"PLUGIN_COMMAND"`
+	BuildTool           string `envconfig:"PLUGIN_BUILD_TOOL"`
+	ResolveReleaseRepo  string `envconfig:"PLUGIN_RESOLVE_RELEASE_REPO"`
+	ResolveSnapshotRepo string `envconfig:"PLUGIN_RESOLVE_SNAPSHOT_REPO"`
+	DeployRepo          string `envconfig:"PLUGIN_DEPLOY_REPO"`
 
 	// Maven parameters
 	MvnResolveReleases  string `envconfig:"PLUGIN_REPO_RESOLVE_RELEASES"`
@@ -98,9 +102,9 @@ func Exec(ctx context.Context, args Args) error {
 	var err error
 
 	switch {
-	case len(args.Command) > 0:
+	case len(args.BuildTool) > 0:
+		fmt.Println("BuildTool ---- ", args.BuildTool)
 		_, err := handleRtCommand(ctx, args)
-
 		return err
 	default:
 		cmdArgs, err = NativeJfCommandExec(ctx, args)
@@ -173,21 +177,30 @@ func ExecCommand(args Args, cmdArgs []string) error {
 }
 
 func handleRtCommand(ctx context.Context, args Args) ([][]string, error) {
+	fmt.Println("Handling rt command handleRtCommand")
 	commandsList := [][]string{}
 	var err error
 
-	switch args.Command {
-	case MvnCmd:
+	if args.Command == "" || args.Command == "build" {
+		fmt.Println("first handlers")
 		commandsList, err = GetMavenCommandArgs(args)
-	case RtMavenDeployer:
-		commandsList, err = GetRtMavenDeployerCommandArgs(args)
-	case RtMavenResolver:
-		commandsList, err = GetRtMavenResolverCommandArgs(args)
-	case RtMavenRun:
-		commandsList, err = GetMavenRunCommandArgs(args)
-	case RtPublishBuildInfo:
-		commandsList, err = GetRtPublishBuildInfoCommandArgs(args)
 	}
+
+	//fmt.Println("second handlers")
+	//
+	//switch args.Command {
+	//case MvnCmd:
+	//	fmt.Println("Maven command")
+	//	commandsList, err = GetMavenCommandArgs(args)
+	//case RtMavenDeployer:
+	//	commandsList, err = GetRtMavenDeployerCommandArgs(args)
+	//case RtMavenResolver:
+	//	commandsList, err = GetRtMavenResolverCommandArgs(args)
+	//case RtMavenRun:
+	//	commandsList, err = GetMavenRunCommandArgs(args)
+	//case RtPublishBuildInfo:
+	//	commandsList, err = GetRtPublishBuildInfoCommandArgs(args)
+	//}
 
 	for _, cmd := range commandsList {
 
@@ -510,22 +523,19 @@ var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStrin
 	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
 	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
 	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
-	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
-	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+	{"--repo-resolve-releases=", "PLUGIN_RESOLVE_RELEASE_REPO", false, false, nil, nil},
+	{"--repo-resolve-snapshots=", "PLUGIN_RESOLVE_SNAPSHOT_REPO", false, false, nil, nil},
 	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
-	{"--server-id-resolve=", "PLUGIN_SERVER_ID_RESOLVE", false, false, nil, nil},
+	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
 	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
 }
 
 func GetMavenCommandArgs(args Args) ([][]string, error) {
 
-	if args.MvnGoals == "" {
-		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
-	}
-
+	fmt.Println("GetMavenCommandArgs 222222222222")
 	var cmdList [][]string
 
-	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs("tmpSrvConfig",
+	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(args.ResolverId,
 		args.Username, args.Password, args.URL, args.AccessToken)
 	if err != nil {
 		return cmdList, err
@@ -564,67 +574,6 @@ var RtMavenConfigCmdJsonTagToExeFlagMapString = []JsonTagToExeFlagMapStringItem{
 	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
 	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
 	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
-}
-
-var RtMavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
-	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
-	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
-	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
-	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
-	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
-	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
-	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
-}
-
-func GetMavenRunCommandArgs(args Args) ([][]string, error) {
-
-	fmt.Println(">>>>>>>>>>>>>> a8aja GetMavenRunCommandArgs READING CONFIGS <<<<<<<<<<<<<<<<")
-
-	if args.MvnGoals == "" {
-		return [][]string{}, fmt.Errorf("Missing mandatory parameter", args.MvnGoals)
-	}
-
-	var cmdList [][]string
-
-	mvnConfigCommandArgs := []string{MvnConfig}
-	err := PopulateArgs(&mvnConfigCommandArgs, &args, RtMavenConfigCmdJsonTagToExeFlagMapString)
-	if err != nil {
-		return cmdList, err
-	}
-
-	err = GetResolverCmd(args, DeployerIdType, "PLUGIN_REPO_DEPLOY_RELEASES", "PLUGIN_REPO_DEPLOY_SNAPSHOTS",
-		"--repo-deploy-releases=", "--repo-deploy-snapshots=", &mvnConfigCommandArgs, &cmdList)
-
-	if err != nil {
-		return cmdList, err
-	}
-
-	err = GetResolverCmd(args, ResolverIdType, "PLUGIN_REPO_RESOLVE_RELEASES", "PLUGIN_REPO_RESOLVE_SNAPSHOTS",
-		"--repo-resolve-releases=", "--repo-resolve-snapshots=", &mvnConfigCommandArgs, &cmdList)
-
-	if err != nil {
-		fmt.Println("Error in GetResolverCmd ", err)
-		return cmdList, err
-	}
-
-	mvnRunCommandArgs := []string{MvnCmd, args.MvnGoals}
-	err = PopulateArgs(&mvnRunCommandArgs, &args, RtMavenRunCmdJsonTagToExeFlagMapStringItemList)
-	if err != nil {
-		return cmdList, err
-	}
-	if len(args.MvnPomFile) > 0 {
-		mvnRunCommandArgs = append(mvnRunCommandArgs, "-f "+args.MvnPomFile)
-	}
-
-	cmdList = append(cmdList, mvnConfigCommandArgs)
-	cmdList = append(cmdList, mvnRunCommandArgs)
-
-	for i, cmd := range cmdList {
-		fmt.Println(i, " --> ", cmd)
-	}
-
-	return cmdList, nil
 }
 
 func GetResolverCmd(args Args, resolverIdType string,
@@ -726,79 +675,80 @@ func IsAuthUserNamePassword(infoMap map[string]interface{}) (string, string, boo
 	return userName, password, len(userName) > 0 && len(password) > 0
 }
 
-var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
-	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
-	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
-	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
-	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
-	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
-	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
-}
-
-func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
-
-	fmt.Println("Setting up deployer")
-	var cmdList [][]string
-
-	mvnDeployerMap := map[string]interface{}{
-		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
-		"PLUGIN_REPO_DEPLOY_SNAPSHOTS": args.MvnDeploySnapshots,
-		"PLUGIN_USERNAME":              args.Username,
-		"PLUGIN_PASSWORD":              args.Password,
-		"PLUGIN_URL":                   args.URL,
-		"PLUGIN_ACCESS_TOKEN":          args.AccessToken,
-		"PLUGIN_API_KEY":               args.APIKey,
-	}
-	mvnDeployerJson, err := json.Marshal(mvnDeployerMap)
-	if err != nil {
-		return cmdList, err
-	}
-	deployerIdFileName := getDeployerIdFileName(args.DeployerId)
-	err = os.WriteFile(deployerIdFileName, mvnDeployerJson, 0600)
-	if err != nil {
-		return cmdList, err
-	}
-
-	return cmdList, nil
-}
+//var RtMavenDeployerConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
+//	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
+//	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
+//	{"--repo-deploy-releases=", "PLUGIN_REPO_DEPLOY_RELEASES", false, false, nil, nil},
+//	{"--repo-deploy-snapshots=", "PLUGIN_REPO_DEPLOY_SNAPSHOTS", false, false, nil, nil},
+//	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+//	{"--server-id-deploy=", "PLUGIN_DEPLOYER_ID", false, false, nil, nil},
+//}
+//
+//func GetRtMavenDeployerCommandArgs(args Args) ([][]string, error) {
+//
+//	fmt.Println("Setting up deployer")
+//	var cmdList [][]string
+//
+//	mvnDeployerMap := map[string]interface{}{
+//		"PLUGIN_REPO_DEPLOY_RELEASES":  args.MvnDeployReleases,
+//		"PLUGIN_REPO_DEPLOY_SNAPSHOTS": args.MvnDeploySnapshots,
+//		"PLUGIN_USERNAME":              args.Username,
+//		"PLUGIN_PASSWORD":              args.Password,
+//		"PLUGIN_URL":                   args.URL,
+//		"PLUGIN_ACCESS_TOKEN":          args.AccessToken,
+//		"PLUGIN_API_KEY":               args.APIKey,
+//	}
+//	mvnDeployerJson, err := json.Marshal(mvnDeployerMap)
+//	if err != nil {
+//		return cmdList, err
+//	}
+//	deployerIdFileName := getDeployerIdFileName(args.DeployerId)
+//	err = os.WriteFile(deployerIdFileName, mvnDeployerJson, 0600)
+//	if err != nil {
+//		return cmdList, err
+//	}
+//
+//	return cmdList, nil
+//}
 
 func getDeployerIdFileName(deployerId string) string {
 	return deployerId + ".deployer_data" + ".json"
 }
 
-var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
-	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
-	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
-	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
-}
-
-func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
-
-	fmt.Println("Setting up Resolver")
-
-	var cmdList [][]string
-
-	mvnResolverMap := map[string]interface{}{
-		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
-		"PLUGIN_REPO_RESOLVE_SNAPSHOTS": args.MvnResolveSnapshots,
-		"PLUGIN_USERNAME":               args.Username,
-		"PLUGIN_PASSWORD":               args.Password,
-		"PLUGIN_URL":                    args.URL,
-		"PLUGIN_ACCESS_TOKEN":           args.AccessToken,
-		"PLUGIN_API_KEY":                args.APIKey,
-	}
-	mvnResolverJson, err := json.Marshal(mvnResolverMap)
-	if err != nil {
-		return cmdList, err
-	}
-	resolverIdFileName := getResolverIdFileName(args.ResolverId)
-	err = os.WriteFile(resolverIdFileName, mvnResolverJson, 0600)
-	if err != nil {
-		return cmdList, err
-	}
-
-	return cmdList, nil
-}
+//
+//var RtMavenResolverConfigCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
+//	{"--repo-resolve-releases=", "PLUGIN_REPO_RESOLVE_RELEASES", false, false, nil, nil},
+//	{"--repo-resolve-snapshots=", "PLUGIN_REPO_RESOLVE_SNAPSHOTS", false, false, nil, nil},
+//	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
+//}
+//
+//func GetRtMavenResolverCommandArgs(args Args) ([][]string, error) {
+//
+//	fmt.Println("Setting up Resolver")
+//
+//	var cmdList [][]string
+//
+//	mvnResolverMap := map[string]interface{}{
+//		"PLUGIN_REPO_RESOLVE_RELEASES":  args.MvnResolveReleases,
+//		"PLUGIN_REPO_RESOLVE_SNAPSHOTS": args.MvnResolveSnapshots,
+//		"PLUGIN_USERNAME":               args.Username,
+//		"PLUGIN_PASSWORD":               args.Password,
+//		"PLUGIN_URL":                    args.URL,
+//		"PLUGIN_ACCESS_TOKEN":           args.AccessToken,
+//		"PLUGIN_API_KEY":                args.APIKey,
+//	}
+//	mvnResolverJson, err := json.Marshal(mvnResolverMap)
+//	if err != nil {
+//		return cmdList, err
+//	}
+//	resolverIdFileName := getResolverIdFileName(args.ResolverId)
+//	err = os.WriteFile(resolverIdFileName, mvnResolverJson, 0600)
+//	if err != nil {
+//		return cmdList, err
+//	}
+//
+//	return cmdList, nil
+//}
 
 func getResolverIdFileName(deployerId string) string {
 	return deployerId + ".resolver_data" + ".json"
@@ -808,42 +758,39 @@ var RtBuildInfoPublishCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
 	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
 }
 
-func GetRtPublishBuildInfoCommandArgs(args Args) ([][]string, error) {
-
-	var cmdList [][]string
-	var jfrogConfigAddConfigCommandArgs []string
-
-	idType := ""
-	serverId := ""
-
-	if args.DeployerId != "" {
-		idType = DeployerIdType
-		serverId = args.DeployerId
-	}
-
-	if args.ResolverId != "" {
-		idType = ResolverIdType
-		serverId = args.ResolverId
-	}
-
-	err := GetResolverCmd(args, idType, "None", "None", "", "", &jfrogConfigAddConfigCommandArgs, &cmdList)
-	rtPublishBuildInfoCommandArgs := []string{"rt", BuildPublish, args.BuildName, args.BuildNumber,
-		"--server-id=" + serverId}
-	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
-	if err != nil {
-		return cmdList, err
-	}
-	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
-
-	return cmdList, nil
-}
+//
+//func GetRtPublishBuildInfoCommandArgs(args Args) ([][]string, error) {
+//
+//	var cmdList [][]string
+//	var jfrogConfigAddConfigCommandArgs []string
+//
+//	idType := ""
+//	serverId := ""
+//
+//	if args.DeployerId != "" {
+//		idType = DeployerIdType
+//		serverId = args.DeployerId
+//	}
+//
+//	if args.ResolverId != "" {
+//		idType = ResolverIdType
+//		serverId = args.ResolverId
+//	}
+//
+//	err := GetResolverCmd(args, idType, "None", "None", "", "", &jfrogConfigAddConfigCommandArgs, &cmdList)
+//	rtPublishBuildInfoCommandArgs := []string{"rt", BuildPublish, args.BuildName, args.BuildNumber,
+//		"--server-id=" + serverId}
+//	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
+//	if err != nil {
+//		return cmdList, err
+//	}
+//	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
+//
+//	return cmdList, nil
+//}
 
 func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	accessToken string) ([]string, error) {
-
-	//if len(userName) == 0 || len(password) == 0 || len(url) == 0 {
-	//	return []string{}
-	//}
 
 	if srvConfigStr == "" {
 		srvConfigStr = "tmpSrvConfig"
