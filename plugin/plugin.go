@@ -561,7 +561,7 @@ func PopulateArgs(tmpCommandsList *[]string, args *Args,
 				log.Println("GetFieldAddress error: ", err)
 				return err
 			}
-			log.Println("GetFieldAddress error: ", err)
+			//log.Println("GetFieldAddress error: ", err)
 			continue
 		}
 
