@@ -490,14 +490,11 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 	cmdList = append(cmdList, mvnConfigCommandArgs)
 	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
 
-	//log.Println(cmdList)
-	//os.Exit(0)
-
 	return cmdList, nil
 }
 
 var RtBuildInfoPublishCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
-	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
+	{"--project=", "PLUGIN_PROJECT", false, false},
 }
 
 func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
@@ -521,27 +518,27 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 }
 
 var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--build-name=", "PLUGIN_BUILD_NAME", false, false, nil, nil},
-	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false, nil, nil},
-	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false, nil, nil},
-	{"--format=", "PLUGIN_FORMAT", false, false, nil, nil},
-	{"--insecure-tls=", "PLUGIN_INSECURE", false, false, nil, nil},
-	{"--project=", "PLUGIN_PROJECT", false, false, nil, nil},
-	{"--scan=", "PLUGIN_SCAN", false, false, nil, nil},
-	{"--threads=", "PLUGIN_THREADS", false, false, nil, nil},
+	{"--build-name=", "PLUGIN_BUILD_NAME", false, false},
+	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false},
+	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false},
+	{"--format=", "PLUGIN_FORMAT", false, false},
+	{"--insecure-tls=", "PLUGIN_INSECURE", false, false},
+	{"--project=", "PLUGIN_PROJECT", false, false},
+	{"--scan=", "PLUGIN_SCAN", false, false},
+	{"--threads=", "PLUGIN_THREADS", false, false},
 }
 
 var MavenConfigCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false, nil, nil},
-	{"--global=", "PLUGIN_GLOBAL", false, false, nil, nil},
-	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false, nil, nil},
-	{"--repo-deploy-releases=", "PLUGIN_DEPLOY_RELEASE_REPO", false, false, nil, nil},
-	{"--repo-deploy-snapshots=", "PLUGIN_DEPLOY_SNAPSHOT_REPO", false, false, nil, nil},
-	{"--repo-resolve-releases=", "PLUGIN_RESOLVE_RELEASE_REPO", false, false, nil, nil},
-	{"--repo-resolve-snapshots=", "PLUGIN_RESOLVE_SNAPSHOT_REPO", false, false, nil, nil},
-	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false, nil, nil},
-	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false, nil, nil},
-	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false, nil, nil},
+	{"--exclude-patterns=", "PLUGIN_EXCLUDE_PATTERNS", false, false},
+	{"--global=", "PLUGIN_GLOBAL", false, false},
+	{"--include-patterns=", "PLUGIN_INCLUDE_PATTERNS", false, false},
+	{"--repo-deploy-releases=", "PLUGIN_DEPLOY_RELEASE_REPO", false, false},
+	{"--repo-deploy-snapshots=", "PLUGIN_DEPLOY_SNAPSHOT_REPO", false, false},
+	{"--repo-resolve-releases=", "PLUGIN_RESOLVE_RELEASE_REPO", false, false},
+	{"--repo-resolve-snapshots=", "PLUGIN_RESOLVE_SNAPSHOT_REPO", false, false},
+	{"--server-id-deploy=", "PLUGIN_SERVER_ID_DEPLOY", false, false},
+	{"--server-id-resolve=", "PLUGIN_RESOLVER_ID", false, false},
+	{"--use-wrapper=", "PLUGIN_USE_WRAPPER", false, false},
 }
 
 type JsonTagToExeFlagMapStringItem struct {
@@ -549,8 +546,6 @@ type JsonTagToExeFlagMapStringItem struct {
 	PluginArgJsonTag string
 	IsMandatory      bool
 	StopOnError      bool
-	ValidationFunc   func() (bool, error)
-	TransformFunc    func() (string, error)
 }
 
 func PopulateArgs(tmpCommandsList *[]string, args *Args,
