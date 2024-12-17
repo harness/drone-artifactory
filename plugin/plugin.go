@@ -54,10 +54,16 @@ type Args struct {
 	BuildName        string `envconfig:"PLUGIN_BUILD_NAME"`
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
+
+	RtCommand
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
+
+	if args.BuildTool != "" {
+		return HandleRtCommands(ctx, args)
+	}
 
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {

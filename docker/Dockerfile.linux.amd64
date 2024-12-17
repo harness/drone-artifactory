@@ -4,15 +4,39 @@ RUN apk add -U --no-cache ca-certificates
 FROM alpine:3.20
 ENV GODEBUG netdns=go
 ENV CI=true
+
+ARG JRE_VERSION=openjdk17
+ARG GRADLE_VERSION=8.3
+
+# Copy CA certificates
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Install jfrog cli with version 2.37.3
-RUN apk add --update \
+# Install necessary tools and dependencies
+RUN apk add --no-cache \
+    bash \
+    "$JRE_VERSION" \
+    maven \
     curl \
+    docker \
+    docker-cli \
     && rm -rf /var/cache/apk/*
+
+# Install Gradle
+RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o /tmp/gradle.zip \
+    && mkdir /opt/gradle \
+    && unzip /tmp/gradle.zip -d /opt/gradle \
+    && rm /tmp/gradle.zip \
+    && ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+
+# Install JFrog CLI
 RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.68.0
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
+# Add your custom plugin
 ADD release/linux/amd64/plugin /bin/
+
+# Expose Docker socket for CLI interaction
+VOLUME /var/run/docker.sock
+
 ENTRYPOINT ["/bin/plugin"]
