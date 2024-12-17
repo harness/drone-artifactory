@@ -55,7 +55,20 @@ type Args struct {
 	PublishBuildInfo bool   `envconfig:"PLUGIN_PUBLISH_BUILD_INFO"`
 	EnableProxy      string `envconfig:"PLUGIN_ENABLE_PROXY"`
 
-	RtCommand
+	// RT commands
+	BuildTool string `envconfig:"PLUGIN_BUILD_TOOL"`
+	Command   string `envconfig:"PLUGIN_COMMAND"`
+
+	// Mvn commands
+	ResolveReleaseRepo  string `envconfig:"PLUGIN_RESOLVE_RELEASE_REPO"`
+	ResolveSnapshotRepo string `envconfig:"PLUGIN_RESOLVE_SNAPSHOT_REPO"`
+	DeployReleaseRepo   string `envconfig:"PLUGIN_DEPLOY_RELEASE_REPO"`
+	DeploySnapshotRepo  string `envconfig:"PLUGIN_DEPLOY_SNAPSHOT_REPO"`
+	DeployRepo          string `envconfig:"PLUGIN_DEPLOY_REPO"`
+	MvnGoals            string `envconfig:"PLUGIN_GOALS"`
+	MvnPomFile          string `envconfig:"PLUGIN_POM_FILE"`
+	DeployerId          string `envconfig:"PLUGIN_DEPLOYER_ID"`
+	ResolverId          string `envconfig:"PLUGIN_RESOLVER_ID"`
 }
 
 // Exec executes the plugin.
