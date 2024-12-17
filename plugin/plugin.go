@@ -62,7 +62,7 @@ type Args struct {
 func Exec(ctx context.Context, args Args) error {
 
 	if args.BuildTool != "" {
-		return HandleRtCommands(ctx, args)
+		return HandleRtCommands(args)
 	}
 
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)

@@ -1,12 +1,13 @@
 package plugin
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -39,8 +40,20 @@ type RtMvnCommand struct {
 	ResolverId string `envconfig:"PLUGIN_RESOLVER_ID"`
 }
 
-func HandleRtCommands(ctx context.Context, args Args) error {
-	commandsList, err := GetRtCommandsList(ctx, args)
+func HandleRtCommands(args Args) error {
+
+	commandsList, err := GetRtCommandsList(args)
+	if err != nil {
+		log.Println("Error Unable to get rt commands list err = ", err)
+		return err
+	}
+
+	err = WriteKnownGoodServerCertsForTls(args)
+	if err != nil {
+		log.Println("Error Unable to write TLS certs err = ", err)
+		return err
+	}
+
 	for _, cmd := range commandsList {
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
@@ -54,7 +67,47 @@ func HandleRtCommands(ctx context.Context, args Args) error {
 	return err
 }
 
-func GetRtCommandsList(ctx context.Context, args Args) ([][]string, error) {
+func WriteKnownGoodServerCertsForTls(args Args) error {
+
+	insecure := parseBoolOrDefault(false, args.Insecure)
+	if insecure {
+		return nil
+	}
+
+	// create pem file
+	if args.PEMFileContents != "" {
+		var path string
+		// figure out path to write pem file
+		if args.PEMFilePath == "" {
+			if runtime.GOOS == "windows" {
+				path = "C:/users/ContainerAdministrator/.jfrog/security/certs/cert.pem"
+			} else {
+				path = "/root/.jfrog/security/certs/cert.pem"
+			}
+		} else {
+			path = args.PEMFilePath
+		}
+		fmt.Printf("Creating pem file at %q\n", path)
+		// write pen contents to path
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			// remove filename from path
+			dir := filepath.Dir(path)
+			pemFolderErr := os.MkdirAll(dir, 0700)
+			if pemFolderErr != nil {
+				return fmt.Errorf("error creating pem folder: %s", pemFolderErr)
+			}
+			// write pem contents
+			pemWriteErr := os.WriteFile(path, []byte(args.PEMFileContents), 0600)
+			if pemWriteErr != nil {
+				return fmt.Errorf("error writing pem file: %s", pemWriteErr)
+			}
+			fmt.Printf("Successfully created pem file at %q\n", path)
+		}
+	}
+	return nil
+}
+
+func GetRtCommandsList(args Args) ([][]string, error) {
 	log.Println("Handling rt command handleRtCommand")
 	commandsList := [][]string{}
 	var err error
