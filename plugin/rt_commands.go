@@ -102,11 +102,19 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	return commandsList, err
 }
 
+func GetShellForOs(osName string) (string, string) {
+	if osName == "windows" {
+		return os.Getenv("POWERSHELL_EXE"), "-Command"
+	}
+
+	return "sh", "-c"
+}
+
 func ExecCommand(args Args, cmdArgs []string) error {
 
 	cmdStr := strings.Join(cmdArgs[:], " ")
 
-	shell, shArg := getShell()
+	shell, shArg := GetShellForOs(runtime.GOOS)
 
 	log.Println()
 	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
