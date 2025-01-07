@@ -18,6 +18,9 @@ RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
 
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
 
+ENV GODEBUG=netdns=go
+RUN mkdir /bin
+
 RUN Invoke-WebRequest -Uri https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.zip -OutFile C:\jdk.zip; `
     Expand-Archive -Path C:\jdk.zip -DestinationPath C:\jdk; `
     Remove-Item -Force C:\jdk.zip
