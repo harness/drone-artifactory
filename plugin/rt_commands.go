@@ -16,6 +16,7 @@ const (
 	MvnCmd       = "mvn"
 	MvnConfig    = "mvn-config"
 	BuildPublish = "build-publish"
+	Deploy       = "deploy"
 )
 
 func HandleRtCommands(args Args) error {

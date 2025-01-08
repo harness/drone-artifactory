@@ -65,7 +65,6 @@ var RtBuildInfoPublishCmdJsonTagToExeFlagMap = []JsonTagToExeFlagMapStringItem{
 }
 
 func GetMavenPublishCommand(args Args) ([][]string, error) {
-
 	var cmdList [][]string
 	var jfrogConfigAddConfigCommandArgs []string
 
@@ -80,7 +79,15 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 	mvnConfigCommandArgs := []string{MvnConfig}
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
-		log.Println("PopulateArgs error: ", err)
+		log.Println("mvnConfigCommandArgs PopulateArgs error: ", err)
+		return cmdList, err
+	}
+
+	rtPublishCommandArgs := []string{MvnCmd, Deploy,
+		"--build-name=" + args.BuildName, "--build-number=" + args.BuildNumber}
+	err = PopulateArgs(&rtPublishCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
+	if err != nil {
+		log.Println("rtPublishCommandArgs PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -94,6 +101,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 
 	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, mvnConfigCommandArgs)
+	cmdList = append(cmdList, rtPublishCommandArgs)
 	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
 
 	return cmdList, nil
