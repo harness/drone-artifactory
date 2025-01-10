@@ -1,5 +1,4 @@
 .env
 release/
 .idea/
-drone-artifactory
 .vscode/
