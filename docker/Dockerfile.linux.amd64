@@ -17,8 +17,6 @@ RUN apk add --no-cache \
     "$JRE_VERSION" \
     maven \
     curl \
-    docker \
-    docker-cli \
     && rm -rf /var/cache/apk/*
 
 # Install Gradle
