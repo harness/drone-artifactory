@@ -6,7 +6,6 @@ package main
 
 import (
 	"context"
-
 	"github.com/drone/drone-artifactory/plugin"
 
 	"github.com/kelseyhightower/envconfig"
@@ -31,12 +30,13 @@ func main() {
 	}
 
 	if err := plugin.Exec(context.Background(), args); err != nil {
-		logrus.Fatalln(err)	
+		logrus.Fatalln(err)
 	}
 }
 
 // default formatter that writes logs without including timestamp or level information.
-type formatter struct {}
+type formatter struct{}
+
 func (*formatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(entry.Message), nil
 }
