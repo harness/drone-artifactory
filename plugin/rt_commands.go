@@ -17,6 +17,9 @@ const (
 	MvnConfig    = "mvn-config"
 	BuildPublish = "build-publish"
 	Deploy       = "deploy"
+	Publish      = "publish"
+	GradleConfig = "gradle-config"
+	GradleCmd    = "gradle"
 )
 
 func HandleRtCommands(args Args) error {
@@ -92,12 +95,22 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	var err error
 
 	if args.BuildTool == MvnCmd && (args.Command == "" || args.Command == "build") {
-		log.Println("first handlers")
+		log.Println("mvn build start")
 		commandsList, err = GetMavenBuildCommandArgs(args)
 	}
 
 	if args.BuildTool == MvnCmd && args.Command == "publish" {
 		commandsList, err = GetMavenPublishCommand(args)
+	}
+
+	if args.BuildTool == GradleCmd && (args.Command == "" || args.Command == "build") {
+		log.Println("Gradle build start")
+		commandsList, err = GetGradleCommandArgs(args)
+	}
+
+	if args.BuildTool == GradleCmd && args.Command == "publish" {
+		log.Println("Gradle publish start")
+		commandsList, err = GetGradlePublishCommand(args)
 	}
 
 	return commandsList, err
@@ -137,7 +150,7 @@ func ExecCommand(args Args, cmdArgs []string) error {
 
 	if args.PublishBuildInfo {
 		if err := publishBuildInfo(args); err != nil {
-			fmt.Println("Error publishing build info: ", err)
+			log.Println("Error publishing build info: ", err)
 			return err
 		}
 	}

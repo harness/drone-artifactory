@@ -69,6 +69,12 @@ type Args struct {
 	MvnPomFile          string `envconfig:"PLUGIN_POM_FILE"`
 	DeployerId          string `envconfig:"PLUGIN_DEPLOYER_ID"`
 	ResolverId          string `envconfig:"PLUGIN_RESOLVER_ID"`
+
+	// Gradle commands
+	GradleTasks string `envconfig:"PLUGIN_TASKS"`
+	BuildFile   string `envconfig:"PLUGIN_BUILD_FILE"`
+	RepoDeploy  string `envconfig:"PLUGIN_REPO_DEPLOY"`
+	RepoResolve string `envconfig:"PLUGIN_REPO_RESOLVE"`
 }
 
 // Exec executes the plugin.

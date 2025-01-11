@@ -62,7 +62,7 @@ docker run --rm \
 - Publish step is used to publish the maven project artifacts to the artifactory repositories.
 - Authentication for Jfrog artifactory can be done using Username and Password or Access Token. Refer to below examples.
 
-### Build step example using Username and Password:
+### Mvn Build step example using Username and Password:
 ```yaml
 - step:
   type: Plugin
@@ -85,7 +85,7 @@ docker run --rm \
       resolve_snapshot_repo: mvn_repo_resolve_snapshots
 ```
 
-### Publish step example using Username and Password:
+### Mvn  Publish step example using Username and Password:
 ```yaml
 - step:
   type: Plugin
@@ -107,7 +107,7 @@ docker run --rm \
       deploy_snapshot_repo: mvn_repo_deploy_snapshots
 ```
 
-### Build step example using Access Token:
+### Mvn Build step example using Access Token:
 ```yaml
 - step:
   type: Plugin
@@ -129,7 +129,7 @@ docker run --rm \
       resolve_snapshot_repo: mvn_repo_resolve_snapshots
 ```
 
-### Publish step example using Access Token:
+### Mvn Publish step example using Access Token:
 ```yaml
 - step:
   type: Plugin
@@ -150,6 +150,66 @@ docker run --rm \
       deploy_release_repo: mvn_repo_deploy_releases
       deploy_snapshot_repo: mvn_repo_deploy_snapshots
 ```
+
+# Gradle Build and Publish
+- Gradle build step is used to build the Gradle project and create artifacts.
+- Publish step is used to publish the Gradle project artifacts to the artifactory repositories.
+- Authentication for Jfrog artifactory can be done using Username and Password or Access Token. Refer to below examples.
+
+### Gradle Build step example using Username and Password:
+```yaml
+- step:
+  type: Plugin
+  name: Plugin_gradle_run
+  identifier: Plugin_gradle_run
+  spec:
+    connectorRef: account.harnessImage
+    image: plugins/artifactory:linux-amd64
+    settings:
+      build_tool: gradle
+      username: user
+      password: <+secrets.getValue("jfrog_user")>
+      url: https://URL.jfrog.io/artifactory/artifactory-test/
+      repo_resolve: repo_resolve_gradle
+      repo_deploy: repo_deploy_gradle
+      tasks: clean build
+      build_name: t2
+      build_number: t4
+      threads: "3"
+      project_key: new_dev_test
+```
+
+### Gradle Publish step example using Username and Password:
+```yaml
+- step:
+  type: Plugin
+  name: Plugin_gradle_publish
+  identifier: Plugin_gradle_publish
+  spec:
+    connectorRef: account.harnessImage
+    image: plugins/artifactory:linux-amd64
+    settings:
+      build_tool: gradle
+      command: publish
+      url: https://URL.jfrog.io/artifactory/artifactory-test/
+      username: user
+      password: <+secrets.getValue("jfrog_user")>
+      build_name: t2
+      build_number: t4
+      repo_resolve: repo_resolve_gradle_02
+      repo_deploy: repo_deploy_gradle_02
+      deployer_id: gradle-deployer
+```
+
+### Gradle Build step example using Access Token
+The config is same as the "Gradle Build step example using Username and Password" for gradle
+"username" should be set as a valid username using which the access token was created
+"password" should be set as the access token value, access token will be a very long string
+
+### Gradle Publish step example using Access Token
+The config is same as the "Gradle Publish step example using Username and Password" for gradle
+"username" should be set as a valid username using which the access token was created
+"password" should be set as the access token value, access token will be a very long string
 
 ## Community and Support
 [Harness Community Slack](https://join.slack.com/t/harnesscommunity/shared_invite/zt-y4hdqh7p-RVuEQyIl5Hcx4Ck8VCvzBw) - Join the #drone slack channel to connect with our engineers and other users running Drone CI.
