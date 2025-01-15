@@ -3,38 +3,53 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
+# Install PowerShell 7.3.6
 RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/download/v7.3.6/PowerShell-7.3.6-win-x64.msi -OutFile C:\powershell.msi; `
     Start-Process msiexec.exe -ArgumentList '/i', 'C:\powershell.msi', '/quiet', '/norestart' -NoNewWindow -Wait; `
     Remove-Item -Force C:\powershell.msi
 ENV POWERSHELL_EXE=pwsh
 
+# Create necessary directories
 RUN mkdir C:\bin >$null; `
     mkdir C:\certificates >$null; `
     mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs >$null
 
+# Copy CA certificates
 COPY docker/cert.windows.pem  C:\users\ContainerAdministrator\.jfrog\security\certs\
 
+# Generate CA certificates
 RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
 
+# Install JFrog CLI
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
 
 ENV GODEBUG=netdns=go
-RUN mkdir /bin
 
+# Install OpenJDK 17
 RUN Invoke-WebRequest -Uri https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.zip -OutFile C:\jdk.zip; `
     Expand-Archive -Path C:\jdk.zip -DestinationPath C:\jdk; `
     Remove-Item -Force C:\jdk.zip
 
 ENV JAVA_HOME=C:\jdk\jdk-17.0.8+7
 
+# Install Maven 3.9.4
 RUN Invoke-WebRequest -Uri https://downloads.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
     Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; `
     Remove-Item -Force C:\maven.zip
 
 ENV MAVEN_HOME=C:\maven\apache-maven-3.9.4
 
-ENV PATH="C:\Program Files\PowerShell\7;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;%PATH%"
+# Install Gradle 8.3
+RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-bin.zip -OutFile C:\gradle.zip; `
+    Expand-Archive -Path C:\gradle.zip -DestinationPath C:\gradle; `
+    Remove-Item -Force C:\gradle.zip
 
+ENV GRADLE_HOME=C:\gradle\gradle-8.3
+
+ENV PATH="C:\Program Files\PowerShell\7;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;%PATH%"
+
+# Add your custom plugin
 ADD release/windows/amd64/plugin C:\bin\drone-artifactory.exe
 
+# Set entrypoint
 ENTRYPOINT ["C:\\bin\\drone-artifactory.exe"]
