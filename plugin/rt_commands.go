@@ -123,6 +123,10 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetDownloadCommandArgs(args)
 	}
 
+	if args.Command == "cleanup" {
+		log.Println("cleanup start")
+		commandsList, err = GetCleanupCommandArgs(args)
+	}
 	return commandsList, err
 }
 

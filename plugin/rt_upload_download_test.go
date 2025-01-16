@@ -134,3 +134,31 @@ func TestGetDownloadCommandUserAccessToken(t *testing.T) {
 		}
 	}
 }
+
+func TestGetCleanupCommandUserPassword(t *testing.T) {
+	args := Args{
+		Username:    "ab",
+		Password:    "cd",
+		Command:     "cleanup",
+		BuildName:   RtBuildName,
+		BuildNumber: RtBuildNumber,
+		URL:         RtUrlTestStr,
+	}
+	cmdList, err := GetDownloadCommandArgs(args)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	wantCmds := []string{
+		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
+			"--user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
+		"rt download   --build-name=t2 --build-number=v1.0",
+	}
+
+	for i, cmd := range cmdList {
+		cmdStr := strings.Join(cmd, " ")
+		if !strings.Contains(cmdStr, wantCmds[i]) {
+			t.Errorf("Expected: |%s|, Got: |%s|", wantCmds[i], cmdStr)
+		}
+	}
+}
