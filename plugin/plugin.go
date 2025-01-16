@@ -75,6 +75,11 @@ type Args struct {
 	BuildFile   string `envconfig:"PLUGIN_BUILD_FILE"`
 	RepoDeploy  string `envconfig:"PLUGIN_REPO_DEPLOY"`
 	RepoResolve string `envconfig:"PLUGIN_REPO_RESOLVE"`
+
+	// Upload Download commands
+	SpecPath string `envconfig:"PLUGIN_SPEC_PATH"`
+	Module   string `envconfig:"PLUGIN_MODULE"`
+	Project  string `envconfig:"PLUGIN_PROJECT"`
 }
 
 // Exec executes the plugin.
