@@ -127,6 +127,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		log.Println("cleanup start")
 		commandsList, err = GetCleanupCommandArgs(args)
 	}
+
 	return commandsList, err
 }
 
