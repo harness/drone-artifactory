@@ -144,7 +144,7 @@ func TestGetCleanupCommandUserPassword(t *testing.T) {
 		BuildNumber: RtBuildNumber,
 		URL:         RtUrlTestStr,
 	}
-	cmdList, err := GetDownloadCommandArgs(args)
+	cmdList, err := GetCleanupCommandArgs(args)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestGetCleanupCommandUserPassword(t *testing.T) {
 	wantCmds := []string{
 		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
 			"--user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
-		"rt download   --build-name=t2 --build-number=v1.0",
+		"rt build-clean t2 v1.0",
 	}
 
 	for i, cmd := range cmdList {
