@@ -69,7 +69,7 @@ func WriteKnownGoodServerCertsForTls(args Args) error {
 		} else {
 			path = args.PEMFilePath
 		}
-		fmt.Printf("Creating pem file at %q\n", path)
+		log.Printf("Creating pem file at %q\n", path)
 		// write pen contents to path
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			// remove filename from path
@@ -83,7 +83,7 @@ func WriteKnownGoodServerCertsForTls(args Args) error {
 			if pemWriteErr != nil {
 				return fmt.Errorf("error writing pem file: %s", pemWriteErr)
 			}
-			fmt.Printf("Successfully created pem file at %q\n", path)
+			log.Printf("Successfully created pem file at %q\n", path)
 		}
 	}
 	return nil
@@ -94,7 +94,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	commandsList := [][]string{}
 	var err error
 
-	fmt.Println("Checking GetRtCommandsList args.Command ", args.Command)
+	log.Println("Checking GetRtCommandsList args.Command ", args.Command)
 
 	if args.BuildTool == MvnCmd && (args.Command == "" || args.Command == "build") {
 		log.Println("mvn build start")
@@ -163,7 +163,7 @@ func ExecCommand(args Args, cmdArgs []string) error {
 	shell, shArg := GetShellForOs(runtime.GOOS)
 
 	log.Println()
-	fmt.Printf("%s %s %s", shell, shArg, cmdStr)
+	log.Printf("%s %s %s", shell, shArg, cmdStr)
 	log.Println()
 
 	cmd := exec.Command(shell, shArg, cmdStr)
@@ -316,7 +316,7 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	authParams, err := setAuthParams([]string{}, Args{Username: userName,
 		Password: password, AccessToken: accessToken, APIKey: apiKey})
 	if err != nil {
-		fmt.Println("setAuthParams error: ", err)
+		log.Println("setAuthParams error: ", err)
 		return []string{""}, err
 	}
 
