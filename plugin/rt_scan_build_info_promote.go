@@ -43,7 +43,7 @@ func GetCreateBuildInfoCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-func GetPublishCommandArgs(args Args) ([][]string, error) {
+func GetBuildInfoPublishCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
 
 	tmpServerId := "tmpServeId"

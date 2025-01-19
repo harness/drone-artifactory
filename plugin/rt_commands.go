@@ -142,7 +142,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 
 	if args.Command == "publish-build-info" {
 		log.Println("publish-build-info start")
-		commandsList, err = GetPublishCommandArgs(args)
+		commandsList, err = GetBuildInfoPublishCommandArgs(args)
 	}
 
 	return commandsList, err
