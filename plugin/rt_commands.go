@@ -145,6 +145,11 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetBuildInfoPublishCommandArgs(args)
 	}
 
+	if args.Command == "promote" {
+		log.Println("promote start")
+		commandsList, err = GetPromoteCommandArgs(args)
+	}
+
 	return commandsList, err
 }
 

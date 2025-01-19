@@ -62,3 +62,25 @@ func GetBuildInfoPublishCommandArgs(args Args) ([][]string, error) {
 	cmdList = append(cmdList, buildInfoCommandArgs)
 	return cmdList, nil
 }
+
+func GetPromoteCommandArgs(args Args) ([][]string, error) {
+	var cmdList [][]string
+
+	tmpServerId := "tmpServeId"
+	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
+		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
+	if err != nil {
+		log.Println("GetConfigAddConfigCommandArgs error: ", err)
+		return cmdList, err
+	}
+
+	promoteCommandArgs := []string{"rt", "build-promote"}
+	if args.Copy != "" {
+		promoteCommandArgs = append(promoteCommandArgs, "--copy="+args.Copy)
+	}
+	promoteCommandArgs = append(promoteCommandArgs, args.BuildName, args.BuildNumber, args.Target)
+
+	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
+	cmdList = append(cmdList, promoteCommandArgs)
+	return cmdList, nil
+}
