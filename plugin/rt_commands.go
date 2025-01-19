@@ -94,6 +94,8 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	commandsList := [][]string{}
 	var err error
 
+	fmt.Println("Checking GetRtCommandsList args.Command ", args.Command)
+
 	if args.BuildTool == MvnCmd && (args.Command == "" || args.Command == "build") {
 		log.Println("mvn build start")
 		commandsList, err = GetMavenBuildCommandArgs(args)
@@ -126,6 +128,21 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	if args.Command == "cleanup" {
 		log.Println("cleanup start")
 		commandsList, err = GetCleanupCommandArgs(args)
+	}
+
+	if args.Command == "scan" {
+		log.Println("scan start")
+		commandsList, err = GetScanCommandArgs(args)
+	}
+
+	if args.Command == "create-build-info" {
+		log.Println("create-build-info start")
+		commandsList, err = GetCreateBuildInfoCommandArgs(args)
+	}
+
+	if args.Command == "publish-build-info" {
+		log.Println("publish-build-info start")
+		commandsList, err = GetPublishCommandArgs(args)
 	}
 
 	return commandsList, err
