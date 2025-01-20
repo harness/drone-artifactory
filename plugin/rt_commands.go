@@ -113,11 +113,6 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetGradlePublishCommand(args)
 	}
 
-	if args.Command == "upload" {
-		log.Println("upload start")
-		commandsList, err = GetUploadCommandArgs(args)
-	}
-
 	if args.Command == "download" {
 		log.Println("download start")
 		commandsList, err = GetDownloadCommandArgs(args)
