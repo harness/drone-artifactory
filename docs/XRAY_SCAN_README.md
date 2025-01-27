@@ -1,4 +1,4 @@
-A plugin to scan artifacts Jfrog artifactory Xray
+A plugin to scan artifacts in Jfrog Artifactory using Xray
 
 Run the following script to install git-leaks support to this repo.
 ```
