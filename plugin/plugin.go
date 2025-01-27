@@ -80,12 +80,17 @@ type Args struct {
 	SpecPath string `envconfig:"PLUGIN_SPEC_PATH"`
 	Module   string `envconfig:"PLUGIN_MODULE"`
 	Project  string `envconfig:"PLUGIN_PROJECT"`
+
+	// Promote commands
+	Copy string `envconfig:"PLUGIN_COPY"`
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
 
+	log.Println("Checking RT commands")
 	if args.BuildTool != "" || args.Command != "" {
+		log.Println("Handling rt command handleRtCommand")
 		return HandleRtCommands(args)
 	}
 
