@@ -36,7 +36,4 @@ RUN chmod +x /usr/local/bin/jfrog
 # Add your custom plugin
 ADD release/linux/amd64/plugin /bin/
 
-# Expose Docker socket for CLI interaction
-VOLUME /var/run/docker.sock
-
 ENTRYPOINT ["/bin/plugin"]
