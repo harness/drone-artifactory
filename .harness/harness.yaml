@@ -1,0 +1,382 @@
+pipeline:
+  name: drone-artifactory-harness
+  identifier: droneartifactoryharness
+  projectIdentifier: Drone_Plugins
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: GitHub_Harness_Org
+        repoName: drone-artifactory
+        build: <+input>
+        sparseCheckout: []
+  stages:
+    - stage:
+        name: Testing Stage
+        identifier: Testing_Stage
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: false
+            paths: []
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Test
+                  identifier: Run_1
+                  spec:
+                    connectorRef: Plugins_Docker_Hub_Connector
+                    image: golang:1.22.4
+                    shell: Sh
+                    command: |-
+                      go test -cover ./...
+                      sh scripts/build.sh
+        description: ""
+    - parallel:
+        - stage:
+            name: linux-amd64
+            identifier: linuxamd64
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Linux
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      name: Build binaries - branch
+                      identifier: Run_1
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.build=<+pipeline.sequenceId>" -a -o release/linux/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> != "tag"
+                  - step:
+                      name: Build binaries - tag
+                      identifier: Tag_Build_Linux_AMD64
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.version=<+codebase.tag> -X main.build=<+pipeline.sequenceId>" -a -o release/linux/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: Plugin
+                      name: BuildAndPushDockerPlugin
+                      identifier: BuildAndPushDockerPlugin
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: plugins/artifactory
+                          dockerfile: docker/Dockerfile.linux.amd64
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: BuildAndPushDockerRegistry
+                      identifier: BuildAndPushDockerRegistry
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: plugins/artifactory
+                        tags:
+                          - linux-amd64
+                        caching: true
+                        dockerfile: docker/Dockerfile.linux.amd64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+            description: ""
+        - stage:
+            name: linux-arm64
+            identifier: linuxarm64
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Linux
+                arch: Arm64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      name: Build binaries - branch
+                      identifier: Run_1
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.build=<+pipeline.sequenceId>" -a -o release/linux/arm64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> != "tag"
+                  - step:
+                      name: Build binaries - tag
+                      identifier: Tag_Build_Linux_ARM64
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.version=<+codebase.tag> -X main.build=<+pipeline.sequenceId>" -a -o release/linux/arm64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: Plugin
+                      name: BuildAndPushDockerPlugin
+                      identifier: BuildAndPushDockerPlugin
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: plugins/artifactory
+                          dockerfile: docker/Dockerfile.linux.arm64
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-arm64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: BuildAndPushDockerRegistry
+                      identifier: BuildAndPushDockerRegistry
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: plugins/artifactory
+                        tags:
+                          - linux-arm64
+                        caching: true
+                        dockerfile: docker/Dockerfile.linux.arm64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+            description: ""
+        - stage:
+            name: windows-1809-amd64
+            identifier: windows1809amd64
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              execution:
+                steps:
+                  - step:
+                      name: Build binaries - branch
+                      identifier: Run_1
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.build=<+pipeline.sequenceId>" -a -o release/windows/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> != "tag"
+                  - step:
+                      name: Build binaries - tag
+                      identifier: Tag_Build_Windows_LTSC2022
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.version=<+codebase.tag> -X main.build=<+pipeline.sequenceId>" -a -o release/windows/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: Plugin
+                      name: BuildAndPushDockerPlugin
+                      identifier: BuildAndPushDockerPlugin
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: plugins/artifactory
+                          dockerfile: docker/Dockerfile.windows.amd64.1809
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-1809-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: BuildAndPushDockerRegistry
+                      identifier: BuildAndPushDockerRegistry
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: plugins/artifactory
+                        tags:
+                          - windows-1809-amd64
+                        caching: true
+                        dockerfile: docker/Dockerfile.windows.amd64.1809
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+              infrastructure:
+                type: VM
+                spec:
+                  type: Pool
+                  spec:
+                    poolName: windows-2019
+                    os: Windows
+            description: ""
+            delegateSelectors:
+              - windows-vm
+        - stage:
+            name: windows-ltsc2022-amd64
+            identifier: windowsltsc2022amd64
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Windows
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      name: Build binaries - branch
+                      identifier: Run_1
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.build=<+pipeline.sequenceId>" -a -o release/windows/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> != "tag"
+                  - step:
+                      name: Build binaries - tag
+                      identifier: Tag_Build_Windows_LTSC2022
+                      type: Run
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.22.4
+                        shell: Sh
+                        command: go build -v -ldflags "-X main.version=<+codebase.tag> -X main.build=<+pipeline.sequenceId>" -a -o release/windows/amd64/plugin
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: Plugin
+                      name: BuildAndPushDockerPlugin
+                      identifier: BuildAndPushDockerPlugin
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: plugins/artifactory
+                          dockerfile: docker/Dockerfile.windows.amd64.ltsc2022
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-ltsc2022-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: BuildAndPushDockerRegistry
+                      identifier: BuildAndPushDockerRegistry
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: plugins/artifactory
+                        tags:
+                          - windows-ltsc2022-amd64
+                        caching: true
+                        dockerfile: docker/Dockerfile.windows.amd64.ltsc2022
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+            description: ""
+    - stage:
+        name: Manifest
+        identifier: Manifest
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: false
+            paths: []
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Plugin
+                  name: Manifest
+                  identifier: Manifest
+                  spec:
+                    connectorRef: Plugins_Docker_Hub_Connector
+                    image: plugins/manifest
+                    settings:
+                      username: drone
+                      password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                      auto_tag: "true"
+                      ignore_missing: "true"
+                      spec: docker/manifest.tmpl
+                  when:
+                    stageStatus: Success
+                    condition: |
+                      <+codebase.build.type> == "tag" || <+codebase.build.type> == "branch"
+        description: ""
