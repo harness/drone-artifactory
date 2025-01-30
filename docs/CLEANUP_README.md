@@ -39,7 +39,6 @@ Build name and Build number are the valid arguments for this step
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01
         build_number: 0.03.01
-        url: https://URL.jfrog.io/artifactory/artifactory-test
 ```
 
 ## Community and Support

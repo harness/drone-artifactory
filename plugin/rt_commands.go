@@ -131,11 +131,6 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetScanCommandArgs(args)
 	}
 
-	if args.Command == "create-build-info" {
-		log.Println("create-build-info start")
-		commandsList, err = GetCreateBuildInfoCommandArgs(args)
-	}
-
 	if args.Command == "publish-build-info" {
 		log.Println("publish-build-info start")
 		commandsList, err = GetBuildInfoPublishCommandArgs(args)
@@ -311,7 +306,7 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	accessToken, apiKey string) ([]string, error) {
 
 	if srvConfigStr == "" {
-		srvConfigStr = "tmpSrvConfig"
+		srvConfigStr = tmpServerId
 	}
 
 	authParams, err := setAuthParams([]string{}, Args{Username: userName,

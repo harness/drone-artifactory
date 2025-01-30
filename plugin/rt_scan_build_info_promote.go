@@ -27,14 +27,6 @@ func GetScanCommandArgs(args Args) ([][]string, error) {
 	return cmdList, nil
 }
 
-func GetCreateBuildInfoCommandArgs(args Args) ([][]string, error) {
-	var cmdList [][]string
-
-	buildCollectEnvCommandArgs := []string{"rt", "build-collect-env", args.BuildName, args.BuildNumber}
-	cmdList = append(cmdList, buildCollectEnvCommandArgs)
-	return cmdList, nil
-}
-
 func GetBuildInfoPublishCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
 
