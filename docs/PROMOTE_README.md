@@ -36,7 +36,7 @@ will copy if not set or set to false will move the artifacts to the target repos
       image: plugins/artifactory:linux-amd64
       settings:
         command: promote
-        url: https://URL.jfrog.io/artifactory/artifactory-test
+        url: https://URL.jfrog.io/artifactory
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01

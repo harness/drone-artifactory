@@ -35,7 +35,7 @@ artifacts produced in the build and build info metadata to Artifactory
       image: plugins/artifactory:linux-amd64
       settings:
         command: publish
-        url: https://URL.jfrog.io/artifactory/artifactory-test
+        url: https://URL.jfrog.io
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01

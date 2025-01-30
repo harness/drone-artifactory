@@ -20,6 +20,7 @@ const (
 	Publish      = "publish"
 	GradleConfig = "gradle-config"
 	GradleCmd    = "gradle"
+	tmpServerId  = "tmpServerId"
 )
 
 func HandleRtCommands(args Args) error {
@@ -144,7 +145,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		log.Println("promote start")
 		commandsList, err = GetPromoteCommandArgs(args)
 	}
-	
+
 	return commandsList, err
 }
 

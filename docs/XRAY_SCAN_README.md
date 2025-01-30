@@ -35,7 +35,7 @@ watches and policies should be setup in JFrog for Xray in JFrog Artifactory.
       image: plugins/artifactory:linux-amd64
       settings:
         command: scan
-        url: https://URL.jfrog.io/artifactory/artifactory-test
+        url: https://URL.jfrog.io/xray
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01

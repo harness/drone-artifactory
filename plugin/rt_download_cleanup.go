@@ -11,6 +11,7 @@ var DownloadCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false},
 	{"--module=", "PLUGIN_MODULE", false, false},
 	{"--project=", "PLUGIN_PROJECT", false, false},
+	{"--url=", "PLUGIN_URL", false, false},
 	{"--spec=", "PLUGIN_SPEC", false, false},
 	{"--spec=", "PLUGIN_SPEC_PATH", false, false},
 }
@@ -18,9 +19,10 @@ var DownloadCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 func GetDownloadCommandArgs(args Args) ([][]string, error) {
 
 	var cmdList [][]string
+	downloadCommandArgs := []string{"rt", "download"}
 
-	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs("tmpServerId",
-		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
+	authParams, err := setAuthParams([]string{}, Args{Username: args.Username,
+		Password: args.Password, AccessToken: args.AccessToken, APIKey: args.APIKey})
 	if err != nil {
 		return cmdList, err
 	}
@@ -35,27 +37,22 @@ func GetDownloadCommandArgs(args Args) ([][]string, error) {
 		args.SpecPath = fileName
 	}
 
-	downloadCommandArgs := []string{"rt", "download", args.Target, args.Source}
+	downloadCommandArgs = append(downloadCommandArgs, authParams...)
+	downloadCommandArgs = append(downloadCommandArgs, args.Target, args.Source)
+	downloadCommandArgs = append(downloadCommandArgs)
+
 	err = PopulateArgs(&downloadCommandArgs, &args, DownloadCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
 	}
 
-	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, downloadCommandArgs)
-
 	return cmdList, nil
 }
 
 func GetCleanupCommandArgs(args Args) ([][]string, error) {
 	var cmdList [][]string
-	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs("tmpServerId",
-		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
-	if err != nil {
-		return cmdList, err
-	}
 	cleanupCommandArgs := []string{"rt", "build-clean", args.BuildName, args.BuildNumber}
-	cmdList = append(cmdList, jfrogConfigAddConfigCommandArgs)
 	cmdList = append(cmdList, cleanupCommandArgs)
 	return cmdList, nil
 }
