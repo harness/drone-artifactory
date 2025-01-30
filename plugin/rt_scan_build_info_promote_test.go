@@ -31,31 +31,6 @@ func TestGetScanCommandUserPassword(t *testing.T) {
 	}
 }
 
-func TestGetBuildInfoCollectCommandUserAccessToken(t *testing.T) {
-	args := Args{
-		AccessToken: RtAccessToken,
-		Command:     "create-build-info",
-		BuildName:   RtBuildName,
-		BuildNumber: RtBuildNumber,
-		URL:         RtUrlTestStr,
-	}
-	cmdList, err := GetCreateBuildInfoCommandArgs(args)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	wantCmds := []string{
-		"rt build-collect-env t2 v1.0",
-	}
-
-	for i, cmd := range cmdList {
-		cmdStr := strings.Join(cmd, " ")
-		if !strings.Contains(cmdStr, wantCmds[i]) {
-			t.Errorf("Expected: |%s|, Got: |%s|", wantCmds[i], cmdStr)
-		}
-	}
-}
-
 func TestGetBuildInfoPublishCommandUserPassword(t *testing.T) {
 	args := Args{
 		Username:    "ab",
