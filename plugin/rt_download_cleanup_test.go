@@ -28,10 +28,8 @@ func TestGetDownloadCommandUserPassword(t *testing.T) {
 	}
 
 	wantCmds := []string{
-		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
-			"--user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
-		"rt download   --build-name=t2 --build-number=v1.0 --module=backend_module " +
-			"--project=backend_project --spec=spec.json",
+		"rt download --user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD   " + "--build-name=t2 --build-number=v1.0 " +
+			"--module=backend_module --project=backend_project --url=https://artifactory.test.io/artifactory/ --spec=spec.json",
 	}
 
 	for i, cmd := range cmdList {
@@ -59,10 +57,8 @@ func TestGetDownloadCommandUserAccessToken(t *testing.T) {
 	}
 
 	wantCmds := []string{
-		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
-			"--access-token $PLUGIN_ACCESS_TOKEN --interactive=false",
-		"rt download   --build-name=t2 --build-number=v1.0 --module=backend_module " +
-			"--project=backend_project --spec=spec.json",
+		"rt download --access-token $PLUGIN_ACCESS_TOKEN   --build-name=t2 --build-number=v1.0 --module=backend_module" +
+			" --project=backend_project --url=https://artifactory.test.io/artifactory/ --spec=spec.json",
 	}
 
 	for i, cmd := range cmdList {
@@ -88,8 +84,6 @@ func TestGetCleanupCommandUserPassword(t *testing.T) {
 	}
 
 	wantCmds := []string{
-		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
-			"--user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
 		"rt build-clean t2 v1.0",
 	}
 

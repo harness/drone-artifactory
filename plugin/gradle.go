@@ -82,7 +82,7 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 	var cmdList [][]string
 	var jfrogConfigAddConfigCommandArgs []string
 
-	tmpServerId := args.DeployerId // "tmpSrvConfig"
+	tmpServerId := args.DeployerId
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
 		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {

@@ -1,4 +1,4 @@
-A plugin to upload files to Jfrog artifactory.
+A plugin to promote a build in JFrog and copy or transfer to different repositories
 
 Run the following script to install git-leaks support to this repo.
 ```
@@ -20,25 +20,29 @@ Build the plugin image:
 docker build -t plugins/artifactory  -f docker/Dockerfile .
 ```
 
-#  Cleanup build info collected locally
-This step is used to clean (remove) build info collected locally
-Build name and Build number are the valid arguments for this step
+#  Promote artifacts to Jfrog Artifactory and copy or transfer to different repositories
+This step promotes the artifacts of a build like the binaries and other
+artifacts produced to another repository in Artifactory. Setting "copy" to true
+will copy if not set or set to false will move the artifacts to the target repository.
 
-### Cleanup a build in local environment:
+### Promote artifacts to Jfrog Artifactory and copy or transfer to different repositories
 ```yaml
 - step:
     type: Plugin
-    name: CleanupStep
-    identifier: CleanupStep
+    name: PromoteStep
+    identifier: PromoteStep
     spec:
       connectorRef: account.harnessImage
       image: plugins/artifactory:linux-amd64
       settings:
-        command: cleanup
+        command: promote
+        url: https://URL.jfrog.io/artifactory
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01
         build_number: 0.03.01
+        target: build-promote-repo-01
+        copy: true
 ```
 
 ## Community and Support

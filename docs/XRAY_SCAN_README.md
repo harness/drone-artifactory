@@ -1,4 +1,4 @@
-A plugin to upload files to Jfrog artifactory.
+A plugin to scan artifacts in Jfrog Artifactory using Xray
 
 Run the following script to install git-leaks support to this repo.
 ```
@@ -20,21 +20,22 @@ Build the plugin image:
 docker build -t plugins/artifactory  -f docker/Dockerfile .
 ```
 
-#  Cleanup build info collected locally
-This step is used to clean (remove) build info collected locally
-Build name and Build number are the valid arguments for this step
+#  Scan artifacts in Jfrog Artifactory using Xray
+This step scans the artifacts in JFrog Artifactory using Xray. Suitable
+watches and policies should be setup in JFrog for Xray in JFrog Artifactory.
 
-### Cleanup a build in local environment:
+### Scan artifacts in Jfrog Artifactory using Xray
 ```yaml
 - step:
     type: Plugin
-    name: CleanupStep
-    identifier: CleanupStep
+    name: XrayScanStep
+    identifier: XrayScanStep
     spec:
       connectorRef: account.harnessImage
       image: plugins/artifactory:linux-amd64
       settings:
-        command: cleanup
+        command: scan
+        url: https://URL.jfrog.io/xray
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01

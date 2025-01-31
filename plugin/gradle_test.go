@@ -24,8 +24,8 @@ func TestGetGradleBuildCommandArgs(t *testing.T) {
 				BuildNumber: RtBuildNumber,
 			},
 			output: []string{
-				"config add tmpSrvConfig --url=" + RtUrlTestStr +
-					" --user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
+				"config add tmpServerId --url=https://artifactory.test.io/artifactory/ " +
+					"--user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
 				"gradle-config --repo-deploy=" + RtTestRelRepo + " --repo-resolve=" + RtResolveRelRepo,
 				"gradle clean build --build-name=" + RtBuildName + " --build-number=" + RtBuildNumber,
 			},

@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -36,8 +35,6 @@ func TestGetMavenBuildCommandUserPassword(t *testing.T) {
 
 	for i, cmd := range cmdList {
 		cmdStr := strings.Join(cmd, " ")
-		fmt.Println(cmdStr)
-
 		ret := strings.Compare(cmdStr, wantCmds[i])
 		if ret != 0 {
 			t.Errorf("Expected: %s, Got: %s", wantCmds[i], cmdStr)
@@ -75,7 +72,6 @@ func TestGetMavenBuildCommandAccessToken(t *testing.T) {
 
 	for i, cmd := range cmdList {
 		cmdStr := strings.Join(cmd, " ")
-		fmt.Println(cmdStr)
 		ret := strings.Compare(cmdStr, wantCmds[i])
 		if ret != 0 {
 			t.Errorf("Expected: %s, Got: %s", wantCmds[i], cmdStr)

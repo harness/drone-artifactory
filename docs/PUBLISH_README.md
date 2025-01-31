@@ -1,4 +1,4 @@
-A plugin to upload files to Jfrog artifactory.
+A plugin to publish artifacts and build info metadata to Jfrog artifactory.
 
 Run the following script to install git-leaks support to this repo.
 ```
@@ -20,25 +20,28 @@ Build the plugin image:
 docker build -t plugins/artifactory  -f docker/Dockerfile .
 ```
 
-#  Cleanup build info collected locally
-This step is used to clean (remove) build info collected locally
-Build name and Build number are the valid arguments for this step
+#  Publish artifacts and build info to Jfrog Artifactory
+This step publishes the artifacts of a build like the binaries, other
+artifacts produced in the build and build info metadata to Artifactory 
 
-### Cleanup a build in local environment:
+### Publish artifacts and build info metadata to Jfrog Artifactory
 ```yaml
 - step:
     type: Plugin
-    name: CleanupStep
-    identifier: CleanupStep
+    name: PublishStep
+    identifier: PublishStep
     spec:
       connectorRef: account.harnessImage
       image: plugins/artifactory:linux-amd64
       settings:
-        command: cleanup
+        command: publish
+        url: https://URL.jfrog.io
         username: user
         password: <+secrets.getValue("jfrog_user")>
         build_name: gol-01
         build_number: 0.03.01
+        deploy_release_repo: mvn_repo_deploy_releases
+        deploy_snapshot_repo: mvn_repo_deploy_releases
 ```
 
 ## Community and Support
