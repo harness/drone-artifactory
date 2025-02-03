@@ -71,10 +71,8 @@ var AddDependenciesCmdJsonToExeFlagMapItemList = []JsonTagToExeFlagMapStringItem
 	{"--module=", "PLUGIN_MODULE", false, false},
 	{"--project=", "PLUGIN_PROJECT", false, false},
 	{"--recursive=", "PLUGIN_RECURSIVE", false, false},
-	{"--regexp=", "PLUGIN_REGEXP", false, false},
 	{"--server-id=", "PLUGIN_SERVER_ID", false, false},
 	{"--spec=", "PLUGIN_SPEC_PATH", false, false},
-	{"--spec-vars=", "PLUGIN_SPEC_VARS", false, false},
 }
 
 func GetAddDependenciesCommandArgs(args Args) ([][]string, error) {

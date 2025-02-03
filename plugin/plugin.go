@@ -89,7 +89,7 @@ type Args struct {
 	FromRt            string `envconfig:"PLUGIN_FROM_RT"`
 	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
 	Regexp            string `envconfig:"PLUGIN_REGEXP"`
-	DependencyPattern string `envconfig:"PLUGIN_DEPENDENCY_PATTERN"`
+	DependencyPattern string `envconfig:"PLUGIN_DEPENDENCY"`
 }
 
 // Exec executes the plugin.
