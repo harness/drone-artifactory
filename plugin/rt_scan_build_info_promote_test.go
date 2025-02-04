@@ -90,3 +90,34 @@ func TestPromoteBuildCommandUserPassword(t *testing.T) {
 		}
 	}
 }
+
+func TestAddDependenciesCommandUserPassword(t *testing.T) {
+	args := Args{
+		Username:    "ab",
+		Password:    "cd",
+		Command:     "add-build-dependencies",
+		BuildName:   RtBuildName,
+		BuildNumber: RtBuildNumber,
+		URL:         RtUrlTestStr,
+		Module:      RtModule,
+		Project:     RtProject,
+		SpecPath:    "spec.json",
+	}
+	cmdList, err := GetAddDependenciesCommandArgs(args)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	wantCmds := []string{
+		"config add tmpServerId --url=https://artifactory.test.io/artifactory/ --user $PLUGIN_USERNAME --password $PLUGIN_PASSWORD --interactive=false",
+		"rt build-add-dependencies --module=backend_module --project=backend_project --spec=spec.json --server-id=tmpServerId t2 v1.0",
+		"rt build-publish t2 v1.0",
+	}
+
+	for i, cmd := range cmdList {
+		cmdStr := strings.Join(cmd, " ")
+		if !strings.Contains(cmdStr, wantCmds[i]) {
+			t.Errorf("Expected: |%s|, Got: |%s|", wantCmds[i], cmdStr)
+		}
+	}
+}
