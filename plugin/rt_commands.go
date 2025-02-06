@@ -141,6 +141,11 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetPromoteCommandArgs(args)
 	}
 
+	if args.Command == "add-build-dependencies" {
+		log.Println("add-build-dependencies start")
+		commandsList, err = GetAddDependenciesCommandArgs(args)
+	}
+
 	return commandsList, err
 }
 

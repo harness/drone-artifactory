@@ -83,6 +83,13 @@ type Args struct {
 
 	// Promote commands
 	Copy string `envconfig:"PLUGIN_COPY"`
+
+	// Add Dependencies to build commands
+	Exclusions        string `envconfig:"PLUGIN_EXCLUSIONS"`
+	FromRt            string `envconfig:"PLUGIN_FROM_RT"`
+	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
+	Regexp            string `envconfig:"PLUGIN_REGEXP"`
+	DependencyPattern string `envconfig:"PLUGIN_DEPENDENCY"`
 }
 
 // Exec executes the plugin.
