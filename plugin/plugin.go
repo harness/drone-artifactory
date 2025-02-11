@@ -329,7 +329,7 @@ func setAuthParams(cmdArgs []string, args Args) ([]string, error) {
 
 func getShell() (string, string) {
 	if runtime.GOOS == "windows" {
-		return os.Getenv("POWERSHELL_EXE"), "-Command"
+		return "powershell", "-Command"
 	}
 
 	return "sh", "-c"

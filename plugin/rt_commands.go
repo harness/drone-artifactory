@@ -150,8 +150,9 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 }
 
 func GetShellForOs(osName string) (string, string) {
-	if osName == "windows" {
-		return os.Getenv("POWERSHELL_EXE"), "-Command"
+
+	if runtime.GOOS == "windows" {
+		return "powershell", "-Command"
 	}
 
 	return "sh", "-c"
