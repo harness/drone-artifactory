@@ -46,10 +46,13 @@ RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-
 
 ENV GRADLE_HOME=C:\gradle\gradle-8.3
 
-ENV PATH="C:\Program Files\PowerShell\7;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;%PATH%"
+ENV PATH="C:\Windows\System32\WindowsPowerShell\v1.0\;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;%PATH%"
 
 # Add your custom plugin
 ADD release/windows/amd64/plugin C:\bin\drone-artifactory.exe
 
 # Set entrypoint
 ENTRYPOINT ["C:\\bin\\drone-artifactory.exe"]
+
+#ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
+
