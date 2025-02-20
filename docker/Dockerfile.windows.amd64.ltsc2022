@@ -9,16 +9,7 @@ RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/dow
     Remove-Item -Force C:\powershell.msi
 ENV POWERSHELL_EXE=pwsh
 
-# Create necessary directories
-RUN mkdir C:\bin >$null; `
-    mkdir C:\certificates >$null; `
-    mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs >$null
-
-# Copy CA certificates
-COPY docker/cert.windows.pem  C:\users\ContainerAdministrator\.jfrog\security\certs\
-
-# Generate CA certificates
-RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
+RUN mkdir C:\bin >$null
 
 # Install JFrog CLI
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
@@ -54,5 +45,4 @@ ADD release/windows/amd64/plugin C:\bin\drone-artifactory.exe
 # Set entrypoint
 ENTRYPOINT ["C:\\bin\\drone-artifactory.exe"]
 
-#ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
 
