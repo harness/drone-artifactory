@@ -29,7 +29,7 @@ RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION
     && ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
 
 # Install JFrog CLI
-RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.68.0
+RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.73.2
 RUN mv ./jf /usr/local/bin/jfrog
 RUN chmod +x /usr/local/bin/jfrog
 
