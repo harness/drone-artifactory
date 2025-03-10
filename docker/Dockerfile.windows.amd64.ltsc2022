@@ -2,12 +2,7 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-
-# Install PowerShell 7.3.6
-RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/download/v7.3.6/PowerShell-7.3.6-win-x64.msi -OutFile C:\powershell.msi; `
-    Start-Process msiexec.exe -ArgumentList '/i', 'C:\powershell.msi', '/quiet', '/norestart' -NoNewWindow -Wait; `
-    Remove-Item -Force C:\powershell.msi
-ENV POWERSHELL_EXE=pwsh
+USER ContainerAdministrator
 
 # Create necessary directories
 RUN mkdir C:\bin >$null; `
@@ -15,7 +10,7 @@ RUN mkdir C:\bin >$null; `
     mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs >$null
 
 # Copy CA certificates
-COPY docker/cert.windows.pem  C:\users\ContainerAdministrator\.jfrog\security\certs\
+COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerAdministrator\.jfrog\security\certs\
 
 # Generate CA certificates
 RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
@@ -46,13 +41,9 @@ RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-
 
 ENV GRADLE_HOME=C:\gradle\gradle-8.3
 
-ENV PATH="C:\Windows\System32\WindowsPowerShell\v1.0\;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;%PATH%"
+ENV PATH="%PATH%;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin"
 
-# Add your custom plugin
-ADD release/windows/amd64/plugin C:\bin\drone-artifactory.exe
+ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
 
-# Set entrypoint
-ENTRYPOINT ["C:\\bin\\drone-artifactory.exe"]
-
-#ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
+ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
 
