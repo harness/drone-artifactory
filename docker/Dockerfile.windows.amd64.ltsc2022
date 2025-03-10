@@ -41,7 +41,7 @@ RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-
 
 ENV GRADLE_HOME=C:\gradle\gradle-8.3
 
-ENV PATH="%PATH%;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin"
+ENV PATH="C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;${PATH}"
 
 ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
 
