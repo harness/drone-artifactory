@@ -90,6 +90,13 @@ type Args struct {
 	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
 	Regexp            string `envconfig:"PLUGIN_REGEXP"`
 	DependencyPattern string `envconfig:"PLUGIN_DEPENDENCY"`
+
+	// Build Discard commands
+	Async           string `envconfig:"PLUGIN_ASYNC"`
+	DeleteArtifacts string `envconfig:"PLUGIN_DELETE_ARTIFACTS"`
+	ExcludeBuilds   string `envconfig:"PLUGIN_EXCLUDE_BUILDS"`
+	MaxBuilds       string `envconfig:"PLUGIN_MAX_BUILDS"`
+	MaxDays         string `envconfig:"PLUGIN_MAX_DAYS"`
 }
 
 // Exec executes the plugin.

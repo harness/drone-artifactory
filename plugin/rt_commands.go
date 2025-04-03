@@ -146,6 +146,10 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetAddDependenciesCommandArgs(args)
 	}
 
+	if args.Command == "build-discard" {
+		log.Println("build-discard start")
+		commandsList, err = GetBuildDiscardCommandArgs(args)
+	}
 	return commandsList, err
 }
 
