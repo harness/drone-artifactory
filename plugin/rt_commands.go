@@ -331,3 +331,14 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	cfgCommand = append(cfgCommand, "--interactive=false")
 	return cfgCommand, nil
 }
+
+func IsBuildDiscardArgs(args Args) bool {
+	if len(args.Async) > 0 ||
+		len(args.DeleteArtifacts) > 0 ||
+		len(args.ExcludeBuilds) > 0 ||
+		len(args.MaxBuilds) > 0 ||
+		len(args.MaxDays) > 0 {
+		return true
+	}
+	return false
+}

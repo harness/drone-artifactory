@@ -126,5 +126,14 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 	cmdList = append(cmdList, rtPublishCommandArgs)
 	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
 
+	if IsBuildDiscardArgs(args) {
+		buildDiscardBuildArgsList, err := GetBuildDiscardCommandArgs(args)
+		if err != nil {
+			log.Println("GetBuildDiscardCommandArgs error: ", err)
+			return cmdList, err
+		}
+		cmdList = append(cmdList, buildDiscardBuildArgsList...)
+	}
+
 	return cmdList, nil
 }
