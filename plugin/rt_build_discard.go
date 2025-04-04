@@ -5,8 +5,8 @@ import (
 )
 
 var BuildDiscardCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
-	{"--async", "PLUGIN_ASYNC", false, false},
-	{"--delete-artifacts", "PLUGIN_DELETE_ARTIFACTS", false, false},
+	{"--async=", "PLUGIN_ASYNC", false, false},
+	{"--delete-artifacts=", "PLUGIN_DELETE_ARTIFACTS", false, false},
 	{"--exclude-builds=", "PLUGIN_EXCLUDE_BUILDS", false, false},
 	{"--max-builds=", "PLUGIN_MAX_BUILDS", false, false},
 	{"--max-days=", "PLUGIN_MAX_DAYS", false, false},
