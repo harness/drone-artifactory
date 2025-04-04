@@ -24,7 +24,12 @@ docker build -t plugins/artifactory  -f docker/Dockerfile .
 - Maven build step is used to build the maven project and create artifacts. 
 - Publish step is used to publish the maven project artifacts to the artifactory repositories.
 - Authentication for Jfrog artifactory can be done using Username and Password or Access Token. Refer to below examples.
-
+- Additional build discard with below parameters can be done.
+    - delete_artifacts: The flag to delete the artifacts, if not set will only delete build metadata.
+    - exclude_builds: The builds to exclude from deletion.
+    - max_builds: The maximum number of builds to keep.
+    - max_days: The maximum number of days to keep the builds based on the build timestamp as start time.
+    - async: The flag to run the step asynchronously.
 ### Maven Build step example using Username and Password:
 ```yaml
 - step:
@@ -92,27 +97,34 @@ docker build -t plugins/artifactory  -f docker/Dockerfile .
       resolve_snapshot_repo: mvn_repo_resolve_snapshots
 ```
 
-### Maven Publish step example using Access Token:
+### Maven Publish step with build discard additional parameters:
 ```yaml
 - step:
   type: Plugin
-  name: MavenPublishTest
-  identifier: MavenPublishTest
+  name: PluginMvnPublish
+  identifier: PluginMvnPublish
   spec:
     connectorRef: account.harnessImage
     image: plugins/artifactory:linux-amd64
     settings:
+      access_token: <+secrets.getValue("jfrog_access_token")>
+      build_name: t2
+      build_number: 3
       build_tool: mvn
       command: publish
-      url: https://URL.jfrog.io/artifactory/artifactory-test/
-      access_token: <+secrets.getValue("jfrog_user")>
-      resolver_id: resolve_gen_maven
-      build_name: t2
-      build_number: t4
-      deployer_id: mvn-deployer
-      deploy_release_repo: mvn_repo_deploy_releases
-      deploy_snapshot_repo: mvn_repo_deploy_snapshots
+      deploy_release_repo: mvn_repo_deploy_releases_01
+      deploy_snapshot_repo: mvn_repo_deploy_snapshots_01
+      deployer_id: tmpSrvConfig
+      url: https://URL.jfrog.io
+      username: user
+      max_builds: 3
+      max_days: 30
+      delete_artifacts: true
+      exclude_builds: my-build-1,my-build-2
+      async: true
 ```
+
+
 
 ## Community and Support
 [Harness Community Slack](https://join.slack.com/t/harnesscommunity/shared_invite/zt-y4hdqh7p-RVuEQyIl5Hcx4Ck8VCvzBw) - Join the #drone slack channel to connect with our engineers and other users running Drone CI.
