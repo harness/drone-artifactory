@@ -146,6 +146,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 		commandsList, err = GetAddDependenciesCommandArgs(args)
 	}
 
+	// command "build-discard" Used only by standalone step of build-discard
 	if args.Command == "build-discard" {
 		logrus.Println("build-discard start")
 		commandsList, err = GetBuildDiscardCommandArgs(args)
