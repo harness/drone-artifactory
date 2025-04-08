@@ -1,11 +1,5 @@
 A plugin to manage artifacts in Jfrog artifactory.
 
-Run the following script to install git-leaks support to this repo.
-```
-chmod +x ./git-hooks/install.sh
-./git-hooks/install.sh
-```
-
 # Building
 
 Build the plugin binary:

@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"log"
+	"github.com/sirupsen/logrus"
 )
 
 var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
@@ -72,14 +72,14 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
 		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {
-		log.Println("GetConfigAddConfigCommandArgs error: ", err)
+		logrus.Println("GetConfigAddConfigCommandArgs error: ", err)
 		return cmdList, err
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
-		log.Println("mvnConfigCommandArgs PopulateArgs error: ", err)
+		logrus.Println("mvnConfigCommandArgs PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -87,7 +87,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 		"--build-name=" + args.BuildName, "--build-number=" + args.BuildNumber}
 	err = PopulateArgs(&rtPublishCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
 	if err != nil {
-		log.Println("rtPublishCommandArgs PopulateArgs error: ", err)
+		logrus.Println("rtPublishCommandArgs PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -95,7 +95,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 		"--server-id=" + tmpServerId}
 	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
 	if err != nil {
-		log.Println("PopulateArgs error: ", err)
+		logrus.Println("PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -107,7 +107,7 @@ func GetMavenPublishCommand(args Args) ([][]string, error) {
 	if IsBuildDiscardArgs(args) {
 		buildDiscardBuildArgsList, err := GetBuildDiscardCommandArgs(args)
 		if err != nil {
-			log.Println("GetBuildDiscardCommandArgs error: ", err)
+			logrus.Println("GetBuildDiscardCommandArgs error: ", err)
 			return cmdList, err
 		}
 		cmdList = append(cmdList, buildDiscardBuildArgsList...)
