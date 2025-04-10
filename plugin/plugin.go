@@ -7,7 +7,7 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/sirupsen/logrus"
 	"net/url"
 	"os"
 	"os/exec"
@@ -90,20 +90,27 @@ type Args struct {
 	Recursive         string `envconfig:"PLUGIN_RECURSIVE"`
 	Regexp            string `envconfig:"PLUGIN_REGEXP"`
 	DependencyPattern string `envconfig:"PLUGIN_DEPENDENCY"`
+
+	// Build Discard commands
+	Async           string `envconfig:"PLUGIN_ASYNC"`
+	DeleteArtifacts string `envconfig:"PLUGIN_DELETE_ARTIFACTS"`
+	ExcludeBuilds   string `envconfig:"PLUGIN_EXCLUDE_BUILDS"`
+	MaxBuilds       string `envconfig:"PLUGIN_MAX_BUILDS"`
+	MaxDays         string `envconfig:"PLUGIN_MAX_DAYS"`
 }
 
 // Exec executes the plugin.
 func Exec(ctx context.Context, args Args) error {
 
-	log.Println("Checking RT commands")
+	logrus.Println("Checking RT commands")
 	if args.BuildTool != "" || args.Command != "" {
-		log.Println("Handling rt command handleRtCommand")
+		logrus.Println("Handling rt command handleRtCommand")
 		return HandleRtCommands(args)
 	}
 
 	enableProxy := parseBoolOrDefault(false, args.EnableProxy)
 	if enableProxy {
-		log.Printf("setting proxy config for upload")
+		logrus.Printf("setting proxy config for upload")
 		setSecureConnectProxies()
 	}
 
@@ -378,6 +385,6 @@ func copyEnvVariableIfExists(src string, dest string) {
 	}
 	err := os.Setenv(dest, srcValue)
 	if err != nil {
-		log.Printf("Failed to copy env variable from %s to %s with error %v", src, dest, err)
+		logrus.Printf("Failed to copy env variable from %s to %s with error %v", src, dest, err)
 	}
 }

@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"errors"
-	"log"
+	"github.com/sirupsen/logrus"
 )
 
 func GetScanCommandArgs(args Args) ([][]string, error) {
@@ -34,7 +34,7 @@ func GetBuildInfoPublishCommandArgs(args Args) ([][]string, error) {
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
 		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {
-		log.Println("GetConfigAddConfigCommandArgs error: ", err)
+		logrus.Println("GetConfigAddConfigCommandArgs error: ", err)
 		return cmdList, err
 	}
 	buildInfoCommandArgs := []string{"rt", "build-publish", args.BuildName, args.BuildNumber}

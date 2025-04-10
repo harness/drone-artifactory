@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"fmt"
-	"log"
+	"github.com/sirupsen/logrus"
 )
 
 var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
@@ -86,14 +86,14 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 	jfrogConfigAddConfigCommandArgs, err := GetConfigAddConfigCommandArgs(tmpServerId,
 		args.Username, args.Password, args.URL, args.AccessToken, args.APIKey)
 	if err != nil {
-		log.Println("GetConfigAddConfigCommandArgs error: ", err)
+		logrus.Println("GetConfigAddConfigCommandArgs error: ", err)
 		return cmdList, err
 	}
 
 	gradleConfigCommandArgs := []string{GradleConfig}
 	err = PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
-		log.Println("PopulateArgs error: ", err)
+		logrus.Println("PopulateArgs error: ", err)
 		return cmdList, err
 	}
 	gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--server-id-deploy="+tmpServerId)
@@ -107,7 +107,7 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 	case args.AccessToken != "":
 		errMsg := "AccessToken is not supported for Gradle" +
 			" try username: <username> , password: <access_token> instead"
-		log.Println(errMsg)
+		logrus.Println(errMsg)
 		return cmdList, fmt.Errorf(errMsg)
 	}
 	rtPublishCommandArgs = append(rtPublishCommandArgs, "--build-name="+args.BuildName)
@@ -117,7 +117,7 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 		"--server-id=" + tmpServerId}
 	err = PopulateArgs(&rtPublishBuildInfoCommandArgs, &args, RtBuildInfoPublishCmdJsonTagToExeFlagMap)
 	if err != nil {
-		log.Println("PopulateArgs error: ", err)
+		logrus.Println("PopulateArgs error: ", err)
 		return cmdList, err
 	}
 
@@ -125,6 +125,15 @@ func GetGradlePublishCommand(args Args) ([][]string, error) {
 	cmdList = append(cmdList, gradleConfigCommandArgs)
 	cmdList = append(cmdList, rtPublishCommandArgs)
 	cmdList = append(cmdList, rtPublishBuildInfoCommandArgs)
+
+	if IsBuildDiscardArgs(args) {
+		buildDiscardBuildArgsList, err := GetBuildDiscardCommandArgs(args)
+		if err != nil {
+			logrus.Println("GetBuildDiscardCommandArgs error: ", err)
+			return cmdList, err
+		}
+		cmdList = append(cmdList, buildDiscardBuildArgsList...)
+	}
 
 	return cmdList, nil
 }

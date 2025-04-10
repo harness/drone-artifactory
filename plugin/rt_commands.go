@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"fmt"
-	"log"
+	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,13 +27,13 @@ func HandleRtCommands(args Args) error {
 
 	commandsList, err := GetRtCommandsList(args)
 	if err != nil {
-		log.Println("Error Unable to get rt commands list err = ", err)
+		logrus.Println("Error Unable to get rt commands list err = ", err)
 		return err
 	}
 
 	err = WriteKnownGoodServerCertsForTls(args)
 	if err != nil {
-		log.Println("Error Unable to write TLS certs err = ", err)
+		logrus.Println("Error Unable to write TLS certs err = ", err)
 		return err
 	}
 
@@ -42,7 +42,7 @@ func HandleRtCommands(args Args) error {
 		execArgs = append(execArgs, cmd...)
 		err := ExecCommand(args, execArgs)
 		if err != nil {
-			log.Println("Error Unable to run err = ", err)
+			logrus.Println("Error Unable to run err = ", err)
 			return err
 		}
 	}
@@ -70,7 +70,7 @@ func WriteKnownGoodServerCertsForTls(args Args) error {
 		} else {
 			path = args.PEMFilePath
 		}
-		log.Printf("Creating pem file at %q\n", path)
+		logrus.Printf("Creating pem file at %q\n", path)
 		// write pen contents to path
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			// remove filename from path
@@ -84,21 +84,21 @@ func WriteKnownGoodServerCertsForTls(args Args) error {
 			if pemWriteErr != nil {
 				return fmt.Errorf("error writing pem file: %s", pemWriteErr)
 			}
-			log.Printf("Successfully created pem file at %q\n", path)
+			logrus.Printf("Successfully created pem file at %q\n", path)
 		}
 	}
 	return nil
 }
 
 func GetRtCommandsList(args Args) ([][]string, error) {
-	log.Println("Handling rt command handleRtCommand")
+	logrus.Println("Handling rt command handleRtCommand")
 	commandsList := [][]string{}
 	var err error
 
-	log.Println("Checking GetRtCommandsList args.Command ", args.Command)
+	logrus.Println("Checking GetRtCommandsList args.Command ", args.Command)
 
 	if args.BuildTool == MvnCmd && (args.Command == "" || args.Command == "build") {
-		log.Println("mvn build start")
+		logrus.Println("mvn build start")
 		commandsList, err = GetMavenBuildCommandArgs(args)
 	}
 
@@ -107,45 +107,50 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 	}
 
 	if args.BuildTool == GradleCmd && (args.Command == "" || args.Command == "build") {
-		log.Println("Gradle build start")
+		logrus.Println("Gradle build start")
 		commandsList, err = GetGradleCommandArgs(args)
 	}
 
 	if args.BuildTool == GradleCmd && args.Command == "publish" {
-		log.Println("Gradle publish start")
+		logrus.Println("Gradle publish start")
 		commandsList, err = GetGradlePublishCommand(args)
 	}
 
 	if args.Command == "download" {
-		log.Println("download start")
+		logrus.Println("download start")
 		commandsList, err = GetDownloadCommandArgs(args)
 	}
 
 	if args.Command == "cleanup" {
-		log.Println("cleanup start")
+		logrus.Println("cleanup start")
 		commandsList, err = GetCleanupCommandArgs(args)
 	}
 
 	if args.Command == "scan" {
-		log.Println("scan start")
+		logrus.Println("scan start")
 		commandsList, err = GetScanCommandArgs(args)
 	}
 
 	if args.Command == "publish-build-info" {
-		log.Println("publish-build-info start")
+		logrus.Println("publish-build-info start")
 		commandsList, err = GetBuildInfoPublishCommandArgs(args)
 	}
 
 	if args.Command == "promote" {
-		log.Println("promote start")
+		logrus.Println("promote start")
 		commandsList, err = GetPromoteCommandArgs(args)
 	}
 
 	if args.Command == "add-build-dependencies" {
-		log.Println("add-build-dependencies start")
+		logrus.Println("add-build-dependencies start")
 		commandsList, err = GetAddDependenciesCommandArgs(args)
 	}
 
+	// command "build-discard" Used only by standalone step of build-discard
+	if args.Command == "build-discard" {
+		logrus.Println("build-discard start")
+		commandsList, err = GetBuildDiscardCommandArgs(args)
+	}
 	return commandsList, err
 }
 
@@ -164,9 +169,9 @@ func ExecCommand(args Args, cmdArgs []string) error {
 
 	shell, shArg := GetShellForOs(runtime.GOOS)
 
-	log.Println()
-	log.Printf("%s %s %s", shell, shArg, cmdStr)
-	log.Println()
+	logrus.Println()
+	logrus.Printf("%s %s %s", shell, shArg, cmdStr)
+	logrus.Println()
 
 	cmd := exec.Command(shell, shArg, cmdStr)
 	cmd.Env = os.Environ()
@@ -178,13 +183,13 @@ func ExecCommand(args Args, cmdArgs []string) error {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Println(" Error: ", err)
+		logrus.Println(" Error: ", err)
 		return err
 	}
 
 	if args.PublishBuildInfo {
 		if err := publishBuildInfo(args); err != nil {
-			log.Println("Error publishing build info: ", err)
+			logrus.Println("Error publishing build info: ", err)
 			return err
 		}
 	}
@@ -209,25 +214,25 @@ func PopulateArgs(tmpCommandsList *[]string, args *Args,
 
 		if err != nil {
 			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-				log.Println("GetFieldAddress error: ", err)
+				logrus.Println("GetFieldAddress error: ", err)
 				return err
 			}
-			//log.Println("GetFieldAddress error: ", err)
+			//logrus.Println("GetFieldAddress error: ", err)
 			continue
 		}
 
 		if pluginArgValue == nil {
 			if jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-				log.Println("missing mandatory field: ", pluginArgJsonTag)
+				logrus.Println("missing mandatory field: ", pluginArgJsonTag)
 				return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
 			}
-			log.Println("missing mandatory field: ", pluginArgJsonTag)
+			logrus.Println("missing mandatory field: ", pluginArgJsonTag)
 			continue
 		}
 
 		if pluginArgValue == nil &&
 			jsonTagToExeFlagMapStringItem.IsMandatory || jsonTagToExeFlagMapStringItem.StopOnError {
-			log.Println("missing mandatory field: ", pluginArgJsonTag)
+			logrus.Println("missing mandatory field: ", pluginArgJsonTag)
 			return fmt.Errorf("missing mandatory field %s", pluginArgJsonTag)
 		}
 		AppendStringArg(tmpCommandsList, flagName, pluginArgValue)
@@ -239,12 +244,12 @@ func PopulateArgs(tmpCommandsList *[]string, args *Args,
 func AppendStringArg(argsList *[]string, argName string, argValue *string) {
 
 	if argsList == nil {
-		log.Println("argsList is nil")
+		logrus.Println("argsList is nil")
 		return
 	}
 
 	if argValue == nil {
-		log.Println("argValue is nil")
+		logrus.Println("argValue is nil")
 		return
 	}
 
@@ -318,7 +323,7 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	authParams, err := setAuthParams([]string{}, Args{Username: userName,
 		Password: password, AccessToken: accessToken, APIKey: apiKey})
 	if err != nil {
-		log.Println("setAuthParams error: ", err)
+		logrus.Println("setAuthParams error: ", err)
 		return []string{""}, err
 	}
 
@@ -326,4 +331,15 @@ func GetConfigAddConfigCommandArgs(srvConfigStr, userName, password, url,
 	cfgCommand = append(cfgCommand, authParams...)
 	cfgCommand = append(cfgCommand, "--interactive=false")
 	return cfgCommand, nil
+}
+
+func IsBuildDiscardArgs(args Args) bool {
+	if len(args.Async) > 0 ||
+		len(args.DeleteArtifacts) > 0 ||
+		len(args.ExcludeBuilds) > 0 ||
+		len(args.MaxBuilds) > 0 ||
+		len(args.MaxDays) > 0 {
+		return true
+	}
+	return false
 }

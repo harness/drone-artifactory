@@ -24,6 +24,12 @@ docker build -t plugins/artifactory  -f docker/Dockerfile .
 - Gradle build step is used to build the Gradle project and create artifacts.
 - Publish step is used to publish the Gradle project artifacts to the artifactory repositories.
 - Authentication for Jfrog artifactory can be done using Username and Password or Access Token. Refer to below examples.
+- Additional build discard with below parameters can be done.
+    - delete_artifacts: The flag to delete the artifacts, if not set will only delete build metadata.
+    - exclude_builds: The builds to exclude from deletion.
+    - max_builds: The maximum number of builds to keep.
+    - max_days: The maximum number of days to keep the builds based on the build timestamp as start time.
+    - async: The flag to run the step asynchronously.
 
 ### Gradle Build step example using Username and Password:
 ```yaml
@@ -79,6 +85,34 @@ The config is same as the "Gradle Build step example using Username and Password
 The config is same as the "Gradle Publish step example using Username and Password" for gradle
 "username" should be set as a valid username using which the access token was created
 "password" should be set as the access token value, access token will be a very long string
+
+
+### Gradle Publish step with build discard additional parameters
+```yaml
+- step:
+  type: Plugin
+  name: Plugin_gradle_publish
+  identifier: Plugin_gradle_publish
+  spec:
+    connectorRef: account.harnessImage
+    image: plugins/artifactory:linux-amd64
+    settings:
+      build_tool: gradle
+      command: publish
+      url: https://URL.jfrog.io
+      username: user
+      password: <+secrets.getValue("jfrog_password")>
+      build_name: gradle02
+      build_number: 3
+      repo_resolve: repo_resolve_gradle
+      repo_deploy: repo_deploy_gradle_02
+      deployer_id: gradle-deployer-01
+      max_builds: 3
+      max_days: 30
+      delete_artifacts: true
+      exclude_builds: gradle-01,gradle-02
+      async: true
+```
 
 ## Community and Support
 [Harness Community Slack](https://join.slack.com/t/harnesscommunity/shared_invite/zt-y4hdqh7p-RVuEQyIl5Hcx4Ck8VCvzBw) - Join the #drone slack channel to connect with our engineers and other users running Drone CI.
