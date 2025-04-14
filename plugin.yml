@@ -1,14 +1,6 @@
 deps:
-  apt:
-    packages:
-      - jfrog-cli-v2-jf=2.73.2
-    sources:
-      - line: deb https://releases.jfrog.io/artifactory/jfrog-debs xenial contrib
-        key: https://releases.jfrog.io/artifactory/jfrog-gpg-public/jfrog_public_gpg.key
-  brew:
-    - jfrog-cli
-  choco:
-    - jfrog-cli-v2-jf
+  run:
+    - curl -fL https://install-cli.jfrog.io | sh /dev/stdin 2.73.2
 run:
   binary:
     source: https://github.com/harness/drone-artifactory/releases/download/{{ release }}/plugin-{{ os }}-{{ arch }}.zst
