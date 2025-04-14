@@ -1,0 +1,6 @@
+deps:
+  run:
+    - curl -fL https://install-cli.jfrog.io | sh /dev/stdin 2.73.2
+run:
+  binary:
+    source: https://github.com/harness/drone-artifactory/releases/download/{{ release }}/plugin-{{ os }}-{{ arch }}.zst

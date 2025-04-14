@@ -30,8 +30,8 @@ RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION
 
 # Install JFrog CLI
 RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.73.2
-RUN mv ./jf /usr/local/bin/jfrog
-RUN chmod +x /usr/local/bin/jfrog
+RUN mv ./jf /usr/local/bin/jf
+RUN chmod +x /usr/local/bin/jf
 
 # Add your custom plugin
 ADD release/linux/amd64/plugin /bin/
