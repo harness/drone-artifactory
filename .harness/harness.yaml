@@ -380,4 +380,50 @@ pipeline:
                     condition: |
                       <+codebase.build.type> == "tag" || <+codebase.build.type> == "branch"
         description: ""
+    - stage:
+        name: Release Binaries
+        identifier: Release_Binaries
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: true
+            override: true
+          buildIntelligence:
+            enabled: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Build Binaries
+                  identifier: Build_Binaries
+                  spec:
+                    shell: Sh
+                    command: |-
+                      GOOS=linux   GOARCH=amd64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-linux-amd64
+                      GOOS=linux   GOARCH=arm64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-linux-arm64
+                      GOOS=darwin  GOARCH=amd64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-darwin-amd64
+                      GOOS=darwin  GOARCH=arm64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-darwin-arm64
+                      GOOS=windows GOARCH=amd64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-windows-amd64
+              - step:
+                  type: Plugin
+                  name: Release
+                  identifier: Release
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: plugins/github-release
+                    settings:
+                      files: release/plugin-*
+                      title: <+trigger.tag>
+                      api_key: <+secrets.getValue("ci_job_github_pat")>
+        when:
+          pipelineStatus: Success
+          condition: <+codebase.build.type> == "tag"
   allowStageExecutions: true
