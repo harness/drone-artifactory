@@ -379,28 +379,6 @@ pipeline:
                     stageStatus: Success
                     condition: |
                       <+codebase.build.type> == "tag" || <+codebase.build.type> == "branch"
-        description: ""
-    - stage:
-        name: Release Binaries
-        identifier: Release_Binaries
-        description: ""
-        type: CI
-        spec:
-          cloneCodebase: true
-          caching:
-            enabled: false
-            override: true
-            paths: []
-          buildIntelligence:
-            enabled: false
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Cloud
-            spec: {}
-          execution:
-            steps:
               - step:
                   type: Run
                   name: Build Binaries
@@ -413,6 +391,10 @@ pipeline:
                       GOOS=darwin  GOARCH=amd64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-darwin-amd64
                       GOOS=darwin  GOARCH=arm64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-darwin-arm64
                       GOOS=windows GOARCH=amd64 go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/plugin-windows-amd64
+                  when:
+                    stageStatus: Success
+                    condition: <+codebase.build.type> == "tag"
+                contextType: Pipeline
               - step:
                   type: Plugin
                   name: Release
@@ -424,7 +406,8 @@ pipeline:
                       files: release/plugin-*
                       title: <+trigger.tag>
                       api_key: <+secrets.getValue("ci_job_github_pat")>
-        when:
-          pipelineStatus: Success
-          condition: <+codebase.build.type> == "tag"
+                  when:
+                    stageStatus: Success
+                    condition: <+codebase.build.type> == "tag"
+        description: ""
   allowStageExecutions: true
