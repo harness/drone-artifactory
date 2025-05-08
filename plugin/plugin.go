@@ -116,7 +116,7 @@ func Exec(ctx context.Context, args Args) error {
 
 	// write code here
 	if args.URL == "" {
-		return fmt.Errorf("url needs to be set")
+		return fmt.Errorf("JFrog Artifactory URL must be set, or anonymous access is not permitted")
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
