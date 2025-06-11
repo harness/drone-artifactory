@@ -1,17 +1,16 @@
 # escape=`
 
-FROM mcr.microsoft.com/windows/servercore:1809
-
+# Build stage to install tools
+FROM mcr.microsoft.com/windows/servercore:1809 AS builder
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-USER ContainerAdministrator
 
 # Create necessary directories
 RUN mkdir C:\bin >$null; `
     mkdir C:\certificates >$null; `
-    mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs >$null
+    mkdir -Path C:\users\ContainerUser\.jfrog\security\certs >$null
 
 # Copy CA certificates
-COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerAdministrator\.jfrog\security\certs\
+COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerUser\.jfrog\security\certs\
 
 # Generate CA certificates
 RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
@@ -19,32 +18,40 @@ RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
 # Install JFrog CLI
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
 
-ENV GODEBUG=netdns=go
-
 # Install OpenJDK 17
 RUN Invoke-WebRequest -Uri https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.zip -OutFile C:\jdk.zip; `
     Expand-Archive -Path C:\jdk.zip -DestinationPath C:\jdk; `
     Remove-Item -Force C:\jdk.zip
-
-ENV JAVA_HOME=C:\jdk\jdk-17.0.8+7
 
 # Install Maven 3.9.4
 RUN Invoke-WebRequest -Uri https://downloads.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
     Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; `
     Remove-Item -Force C:\maven.zip
 
-ENV MAVEN_HOME=C:\maven\apache-maven-3.9.4
-
 # Install Gradle 8.3
 RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-bin.zip -OutFile C:\gradle.zip; `
     Expand-Archive -Path C:\gradle.zip -DestinationPath C:\gradle; `
     Remove-Item -Force C:\gradle.zip
 
+# Final image using Nanoserver with all tools
+FROM mcr.microsoft.com/windows/nanoserver:1809 AS final
+
+# Copy all necessary tools and files from the build stage
+COPY --from=builder C:\bin C:\bin
+COPY --from=builder C:\certificates C:\certificates
+COPY --from=builder C:\users\ContainerUser\.jfrog C:\users\ContainerUser\.jfrog
+COPY --from=builder C:\jdk C:\jdk
+COPY --from=builder C:\maven C:\maven
+COPY --from=builder C:\gradle C:\gradle
+
+# Set environment variables
+ENV GODEBUG=netdns=go
+ENV JAVA_HOME=C:\jdk\jdk-17.0.8+7
+ENV MAVEN_HOME=C:\maven\apache-maven-3.9.4
 ENV GRADLE_HOME=C:\gradle\gradle-8.3
+ENV PATH="C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;C:\bin;C:\Windows\system32;C:\Windows"
 
-# Set environment PATH
-ENV PATH="C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Users\ContainerAdministrator\AppData\Local\Microsoft\WindowsApps"
-
+# Add plugin executable
 ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
