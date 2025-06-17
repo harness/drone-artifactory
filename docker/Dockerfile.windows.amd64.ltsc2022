@@ -33,8 +33,10 @@ RUN Invoke-WebRequest -Uri https://services.gradle.org/distributions/gradle-8.3-
     Expand-Archive -Path C:\gradle.zip -DestinationPath C:\gradle; `
     Remove-Item -Force C:\gradle.zip
 
-# Final image using Nanoserver with all tools
-FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS final
+# Use servercore for the final image since we need PowerShell support
+# This is a compromise between size optimization and functionality
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS final
+SHELL ["cmd", "/S", "/C"]
 
 # Copy all necessary tools and files from the build stage
 COPY --from=builder C:\bin C:\bin
@@ -49,7 +51,7 @@ ENV GODEBUG=netdns=go
 ENV JAVA_HOME=C:\jdk\jdk-17.0.8+7
 ENV MAVEN_HOME=C:\maven\apache-maven-3.9.4
 ENV GRADLE_HOME=C:\gradle\gradle-8.3
-ENV PATH="C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;C:\bin;C:\Windows\system32;C:\Windows"
+ENV PATH="C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;C:\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Add plugin executable
 ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
