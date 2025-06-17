@@ -1,27 +1,24 @@
 # escape=`
 
-# Minimal single-stage build without Maven and Gradle
-FROM mcr.microsoft.com/windows/servercore:1809
+# Build stage
+FROM mcr.microsoft.com/windows/servercore:1809 AS builder
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-USER ContainerAdministrator
 
-# Create necessary directories - combined into a single RUN to reduce layers
-RUN mkdir C:\bin >$null; `
-    mkdir C:\certificates >$null; `
-    mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs >$null; `
-    certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
-
-# Copy CA certificates
-COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerAdministrator\.jfrog\security\certs\
-
-# Install JFrog CLI - the primary dependency
+# Download JFrog CLI
+RUN mkdir C:\bin >$null
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
+
+# Final minimal image using Nanoserver with PowerShell Core
+FROM mcr.microsoft.com/powershell:7.3-nanoserver-1809
+
+# Copy JFrog CLI from builder
+COPY --from=builder C:\bin\jfrog.exe C:\bin\jfrog.exe
 
 # Set environment variables
 ENV GODEBUG=netdns=go
-ENV PATH="C:\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+ENV PATH="C:\bin;C:\Program Files\PowerShell;${PATH}"
 
-# Add plugin executable
+# Add plugin executable 
 ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
