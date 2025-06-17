@@ -24,7 +24,7 @@ RUN Invoke-WebRequest -Uri https://github.com/adoptium/temurin17-binaries/releas
     Remove-Item -Force C:\jdk.zip
 
 # Install Maven 3.9.4
-RUN Invoke-WebRequest -Uri https://downloads.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
+RUN Invoke-WebRequest -Uri https://archive.apache.org/dist/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
     Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; `
     Remove-Item -Force C:\maven.zip
 

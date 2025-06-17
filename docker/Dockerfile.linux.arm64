@@ -41,8 +41,8 @@ RUN apk add --no-cache \
 # Copy everything we need from the builder stage
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/local/bin/jf /usr/local/bin/jf
-COPY --from=builder /usr/share/java/maven /usr/share/java/maven
 COPY --from=builder /usr/bin/mvn /usr/bin/mvn
+COPY --from=builder /usr/lib/jvm/java-17-openjdk /usr/lib/jvm/java-17-openjdk
 COPY --from=builder /opt/gradle /opt/gradle
 
 # Create symlinks for tools
