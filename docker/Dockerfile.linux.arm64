@@ -1,52 +1,17 @@
-FROM arm64v8/alpine:3.20 AS builder
-
-# Install necessary tools and build dependencies
-RUN apk add --no-cache ca-certificates \
-    bash \
-    openjdk17 \
-    maven \
-    curl \
-    unzip \
-    docker \
-    docker-cli
-
-# Set Gradle version
-ARG GRADLE_VERSION=8.3
-
-# Install Gradle
-RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o /tmp/gradle.zip \
-    && mkdir /opt/gradle \
-    && unzip /tmp/gradle.zip -d /opt/gradle \
-    && rm /tmp/gradle.zip
-
-# Install JFrog CLI
-RUN curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.73.2 \
-    && mv ./jf /usr/local/bin/jf \
-    && chmod +x /usr/local/bin/jf
-
-# Second stage - minimal runtime image
 FROM arm64v8/alpine:3.20
 
+# Set environment variables
 ENV GODEBUG=netdns=go
 ENV CI=true
 
-# Install required runtime dependencies
-# Using --no-cache to avoid keeping the index files
+# Install minimal dependencies in a single layer
 RUN apk add --no-cache \
+    ca-certificates \
     bash \
-    openjdk17-jre \
     curl \
-    && rm -rf /var/cache/apk/*
-
-# Copy everything we need from the builder stage
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /usr/local/bin/jf /usr/local/bin/jf
-COPY --from=builder /usr/bin/mvn /usr/bin/mvn
-COPY --from=builder /usr/lib/jvm/java-17-openjdk /usr/lib/jvm/java-17-openjdk
-COPY --from=builder /opt/gradle /opt/gradle
-
-# Create symlinks for tools
-RUN ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+    && curl -fL https://getcli.jfrog.io/v2-jf | sh /dev/stdin 2.73.2 \
+    && mv ./jf /usr/local/bin/jf \
+    && chmod +x /usr/local/bin/jf
 
 # Add your custom plugin
 ADD release/linux/arm64/plugin /bin/
