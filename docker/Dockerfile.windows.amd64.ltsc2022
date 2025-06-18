@@ -4,12 +4,9 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2022
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 USER ContainerAdministrator
 
-# Minimal approach - just create bin directory and install JFrog CLI
 ENV GODEBUG=netdns=go
-RUN mkdir C:\bin >$null
-RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
-
-# Add plugin executable
-ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
+RUN mkdir /bin
+RUN Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.52.9/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe
+ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
