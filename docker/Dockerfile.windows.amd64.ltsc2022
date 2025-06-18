@@ -1,29 +1,15 @@
 # escape=`
 
-# Build stage
-FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS builder
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+USER ContainerAdministrator
 
-# Download JFrog CLI
+# Minimal approach - just create bin directory and install JFrog CLI
+ENV GODEBUG=netdns=go
 RUN mkdir C:\bin >$null
 RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
 
-# Final minimal image using Nanoserver with PowerShell Core
-FROM mcr.microsoft.com/powershell:7.3-nanoserver-ltsc2022
-
-# Create bin directory and make PowerShell accessible with original name
-RUN mkdir C:\bin
-COPY --from=builder C:\bin\jfrog.exe C:\bin\jfrog.exe
-
-# Create a copy of pwsh.exe as powershell.exe to maintain compatibility
-# Windows' copy command works in nanoserver with PowerShell Core
-RUN copy "C:\Program Files\PowerShell\pwsh.exe" "C:\bin\powershell.exe"
-
-# Set environment variables and ensure proper PATH
-ENV GODEBUG=netdns=go
-ENV PATH="C:\bin;C:\Program Files\PowerShell;C:\Windows\System32;C:\Windows"
-
-# Add plugin executable 
+# Add plugin executable
 ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
