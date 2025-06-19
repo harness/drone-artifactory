@@ -227,8 +227,8 @@ func Exec(ctx context.Context, args Args) error {
 			// Extract just the filename
 			basename := filepath.Base(source)
 			
-			// Create a temporary file
-			tempFileName := "upload.tmp"
+			// Create a temporary file with absolute path
+			tempFileName := "C:\\uploads\\upload.tmp"
 			logrus.Printf("Creating temporary file %s for uploading content from %s", tempFileName, basename)
 			
 			// Try to read the original source file - try both original and Windows-converted paths
