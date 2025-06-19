@@ -7,14 +7,16 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
+	"time"
+
+	logrus "github.com/sirupsen/logrus"
+	"net/url"
+	"strconv"
 )
 
 const (
@@ -202,7 +204,7 @@ func Exec(ctx context.Context, args Args) error {
 			return fmt.Errorf("target path needs to be set")
 		}
 		
-		// Handle file paths properly for Windows
+		// Handle file paths properly for Windows using spec file approach
 		source := args.Source
 		if runtime.GOOS == "windows" {
 			// Convert Unix-style paths to Windows-style paths if needed
@@ -224,12 +226,12 @@ func Exec(ctx context.Context, args Args) error {
 				}
 			}
 			
-			// Extract just the filename
+			// Extract just the filename for display purposes
 			basename := filepath.Base(source)
 			
-			// Create a temporary file with absolute path
-			tempFileName := "C:\\uploads\\upload.tmp"
-			logrus.Printf("Creating temporary file %s for uploading content from %s", tempFileName, basename)
+			// Create a temporary spec file for JFrog CLI
+			specFileName := "C:\\uploads\\upload-spec.json"
+			logrus.Printf("Creating spec file %s for uploading content from %s", specFileName, basename)
 			
 			// Try to read the original source file - try both original and Windows-converted paths
 			content := []byte("Empty file created by drone-artifactory plugin")
@@ -253,17 +255,51 @@ func Exec(ctx context.Context, args Args) error {
 				logrus.Printf("Could not read files at paths %s or %s - using default content", source, winPath)
 			}
 			
-			// Write the content to our temporary file
-			if err := os.WriteFile(tempFileName, content, 0644); err != nil {
-				logrus.Printf("Error writing to temporary file: %v", err)
-			} else {
-				logrus.Printf("Successfully wrote %d bytes to %s", len(content), tempFileName)
-				// Use our temporary file for the upload
-				source = tempFileName
+			// A unique temporary file to upload
+			uploadFileName := "C:\\uploads\\upload_" + time.Now().Format("20060102_150405") + ".tmp"
+			
+			// Write content to the temp file
+			if err := os.WriteFile(uploadFileName, content, 0644); err != nil {
+				logrus.Printf("Error writing to temporary file %s: %v", uploadFileName, err)
+				return fmt.Errorf("failed to create temporary file for upload: %v", err)
 			}
+			logrus.Printf("Successfully wrote %d bytes to %s", len(content), uploadFileName)
+			
+			// Create a spec file that JFrog CLI can reliably use
+			specData := fmt.Sprintf(`{
+  "files": [
+    {
+      "pattern": "%s",
+      "target": "%s"
+    }
+  ]
+}`, strings.ReplaceAll(uploadFileName, "\\", "/"), args.Target)
+			
+			// Write the spec file
+			if err := os.WriteFile(specFileName, []byte(specData), 0644); err != nil {
+				logrus.Printf("Error writing spec file: %v", err)
+				return fmt.Errorf("failed to create spec file: %v", err)
+			}
+			logrus.Printf("Successfully created spec file with pattern '%s' and target '%s'", uploadFileName, args.Target)
+			
+			// Tell the next part of the code to use the spec file instead of direct source/target
+			args.Spec = specFileName
+			// Set source to empty since we're using spec file
+			source = ""
+			// Set args.Source to empty as well
+			args.Source = ""
+			// Clear args.Target as well since it's in the spec file
+			args.Target = ""
 		}
 		
-		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", source), args.Target)
+		// Either use spec file or direct source/target approach
+		if args.Spec != "" {
+			// Use spec file approach
+			cmdArgs = append(cmdArgs, fmt.Sprintf("--spec=\"%s\"", args.Spec))
+		} else {
+			// Use direct source/target approach
+			cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", source), args.Target)
+		}
 	}
 
 	cmdStr := strings.Join(cmdArgs[:], " ")
