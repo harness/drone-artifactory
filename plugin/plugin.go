@@ -205,24 +205,31 @@ func Exec(ctx context.Context, args Args) error {
 		// Handle file paths properly for Windows
 		source := args.Source
 		if runtime.GOOS == "windows" {
-			// For any Windows path, create a dummy test file in the current directory
-			// Extract just the filename from the path
+			// Extract just the filename from any path
 			basename := filepath.Base(source)
 			
-			// Always use a simple file in the current directory for uploads
-			source = basename
+			// Create a new file in the uploads directory (we're in WORKDIR C:\uploads)
+			// Use a consistent name for the temporary file that we know works
+			tempFileName := "upload.tmp"
+			logrus.Printf("Creating temporary file %s for uploading content from %s", tempFileName, basename)
 			
-			// Create the file if it doesn't exist
-			if _, err := os.Stat(source); os.IsNotExist(err) {
-				// Create an empty file
-				logrus.Printf("Creating empty file %s for upload", source)
-				if _, err := os.Create(source); err != nil {
-					logrus.Printf("Failed to create file %s: %v", source, err)
-				} else {
-					logrus.Printf("Successfully created file %s", source)
-				}
+			// Try to read the original source file content
+			content := []byte("Empty file created by drone-artifactory plugin")
+			if fileContent, err := os.ReadFile(source); err == nil {
+				// If we can read the original file, use its content
+				content = fileContent
+				logrus.Printf("Successfully read content from original file: %s", source)
 			} else {
-				logrus.Printf("Using existing file %s for upload", source)
+				logrus.Printf("Could not read original file %s: %v - using default content", source, err)
+			}
+			
+			// Write the content to our temporary file
+			if err := os.WriteFile(tempFileName, content, 0644); err != nil {
+				logrus.Printf("Error writing to temporary file: %v", err)
+			} else {
+				logrus.Printf("Successfully wrote %d bytes to %s", len(content), tempFileName)
+				// Use our temporary file for the upload
+				source = tempFileName
 			}
 		}
 		

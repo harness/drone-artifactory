@@ -21,14 +21,20 @@ RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.
 # Final image using Nanoserver - much smaller base image
 FROM mcr.microsoft.com/windows/nanoserver:1809
 
-# Create directories and set permissions
+# Create directories with proper permissions for JFrog CLI and plugin operations
 USER ContainerAdministrator
 RUN mkdir C:\bin C:\certificates C:\temp
+
+# Create a writable working directory for file operations
+RUN mkdir C:\uploads
 
 # Copy certificates and JFrog CLI from builder stage
 COPY --from=builder C:\certificates C:\certificates
 COPY --from=builder C:\users\ContainerUser\.jfrog C:\users\ContainerUser\.jfrog
 COPY --from=builder C:\bin\jfrog.exe C:\bin\jfrog.exe
+
+# Set working directory to the writable uploads folder
+WORKDIR C:\uploads
 
 # Set environment variables
 ENV GODEBUG=netdns=go
