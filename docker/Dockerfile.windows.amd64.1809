@@ -1,15 +1,24 @@
 # escape=`
 
-FROM mcr.microsoft.com/windows/servercore:1809
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-USER ContainerAdministrator
+# First stage for downloading JFrog CLI
+FROM mcr.microsoft.com/windows/servercore:1809 AS builder
+SHELL ["cmd", "/S", "/C"]
 
-# Minimal approach - just create bin directory and install JFrog CLI
+# Download JFrog CLI
+RUN mkdir C:\bin
+RUN powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:/bin/jfrog.exe"
+
+# Final image using Nanoserver - much smaller base image
+FROM mcr.microsoft.com/windows/nanoserver:1809
+
+# Copy JFrog CLI from builder stage
+COPY --from=builder C:\bin\jfrog.exe C:\bin\jfrog.exe
+
+# Set environment variables
 ENV GODEBUG=netdns=go
-RUN mkdir C:\bin >$null
-RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
+ENV PATH="C:\bin;C:\Windows\System32;C:\Windows"
 
 # Add plugin executable
-ADD release\windows\amd64\plugin C:\bin\drone-artifactory.exe
+ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
