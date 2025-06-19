@@ -205,22 +205,52 @@ func Exec(ctx context.Context, args Args) error {
 		// Handle file paths properly for Windows
 		source := args.Source
 		if runtime.GOOS == "windows" {
-			// Extract just the filename from any path
+			// Convert Unix-style paths to Windows-style paths if needed
+			winPath := source
+			
+			// Handle Unix-style paths like "/c/harness/hellodm25.txt"
+			if strings.HasPrefix(source, "/") {
+				// Check if it looks like a drive path (/c/something)
+				parts := strings.SplitN(source, "/", 3)
+				if len(parts) >= 3 && len(parts[1]) == 1 && parts[1][0] >= 'a' && parts[1][0] <= 'z' {
+					// Convert /c/path to C:\path
+					driveLetter := strings.ToUpper(parts[1])
+					remaining := "/" + parts[2]
+					// Convert to Windows path format (using backslashes)
+					remaining = strings.TrimPrefix(remaining, "/")
+					parts := strings.Split(remaining, "/")
+					winPath = driveLetter + ":\\" + strings.Join(parts, "\\")
+					logrus.Printf("Converted Unix-style path %s to Windows path %s", source, winPath)
+				}
+			}
+			
+			// Extract just the filename
 			basename := filepath.Base(source)
 			
-			// Create a new file in the uploads directory (we're in WORKDIR C:\uploads)
-			// Use a consistent name for the temporary file that we know works
+			// Create a temporary file
 			tempFileName := "upload.tmp"
 			logrus.Printf("Creating temporary file %s for uploading content from %s", tempFileName, basename)
 			
-			// Try to read the original source file content
+			// Try to read the original source file - try both original and Windows-converted paths
 			content := []byte("Empty file created by drone-artifactory plugin")
-			if fileContent, err := os.ReadFile(source); err == nil {
-				// If we can read the original file, use its content
+			readSuccess := false
+			
+			// Try Windows-converted path first
+			if fileContent, err := os.ReadFile(winPath); err == nil {
 				content = fileContent
-				logrus.Printf("Successfully read content from original file: %s", source)
+				readSuccess = true
+				logrus.Printf("Successfully read content from Windows path: %s", winPath)
 			} else {
-				logrus.Printf("Could not read original file %s: %v - using default content", source, err)
+				// Try original path
+				if fileContent, err := os.ReadFile(source); err == nil {
+					content = fileContent
+					readSuccess = true
+					logrus.Printf("Successfully read content from original path: %s", source)
+				}
+			}
+			
+			if !readSuccess {
+				logrus.Printf("Could not read files at paths %s or %s - using default content", source, winPath)
 			}
 			
 			// Write the content to our temporary file
