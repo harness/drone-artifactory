@@ -120,6 +120,10 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
+	if runtime.GOOS == "windows" {
+		cmdArgs = append(cmdArgs, "--insecure-tls")
+	}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
@@ -197,7 +201,16 @@ func Exec(ctx context.Context, args Args) error {
 		if args.Target == "" {
 			return fmt.Errorf("target path needs to be set")
 		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
+		
+		// Handle file paths properly for Windows
+		source := args.Source
+		if runtime.GOOS == "windows" && !filepath.IsAbs(source) && !strings.Contains(source, "/") && !strings.Contains(source, "\\") {
+			// For simple filenames in Windows, ensure they have a proper path
+			workingDir, _ := os.Getwd()
+			source = filepath.Join(workingDir, source)
+		}
+		
+		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", source), args.Target)
 	}
 
 	cmdStr := strings.Join(cmdArgs[:], " ")

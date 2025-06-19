@@ -40,6 +40,12 @@ func HandleRtCommands(args Args) error {
 	for _, cmd := range commandsList {
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
+		
+		// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
+		if runtime.GOOS == "windows" {
+			execArgs = append(execArgs, "--insecure-tls")
+		}
+		
 		err := ExecCommand(args, execArgs)
 		if err != nil {
 			logrus.Println("Error Unable to run err = ", err)
