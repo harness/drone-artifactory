@@ -163,7 +163,7 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 func GetShellForOs(osName string) (string, string) {
 
 	if runtime.GOOS == "windows" {
-		return "cmd", "/C"
+		return "powershell", "-Command"
 	}
 
 	return "sh", "-c"
