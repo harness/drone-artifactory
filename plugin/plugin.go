@@ -358,6 +358,12 @@ func setAuthParams(cmdArgs []string, args Args) ([]string, error) {
 
 func getShell() (string, string) {
 	if runtime.GOOS == "windows" {
+		// First check for PowerShell Core (pwsh.exe) which is used in PowerShell Nanoserver
+		if _, err := os.Stat("C:/Program Files/PowerShell/pwsh.exe"); err == nil {
+			return "pwsh", "-Command"
+		}
+		
+		// Fall back to traditional PowerShell
 		return "powershell", "-Command"
 	}
 
