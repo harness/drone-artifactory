@@ -120,6 +120,10 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
+	// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
+	if runtime.GOOS == "windows" {
+		cmdArgs = append(cmdArgs, "--insecure-tls")
+	}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
