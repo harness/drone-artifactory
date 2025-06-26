@@ -7,16 +7,14 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-
-	"net/url"
-
-	logrus "github.com/sirupsen/logrus"
 )
 
 const (
@@ -122,10 +120,6 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
-	// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
-	if runtime.GOOS == "windows" {
-		cmdArgs = append(cmdArgs, "--insecure-tls")
-	}
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
@@ -203,9 +197,7 @@ func Exec(ctx context.Context, args Args) error {
 		if args.Target == "" {
 			return fmt.Errorf("target path needs to be set")
 		}
-
-		source := args.Source
-		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", source), args.Target)
+		cmdArgs = append(cmdArgs, fmt.Sprintf("\"%s\"", args.Source), args.Target)
 	}
 
 	cmdStr := strings.Join(cmdArgs[:], " ")
@@ -328,42 +320,22 @@ func sanitizeURL(inputURL string) (string, error) {
 // setAuthParams appends authentication parameters to cmdArgs based on the provided credentials.
 func setAuthParams(cmdArgs []string, args Args) ([]string, error) {
 	// Set authentication params
-	if runtime.GOOS == "windows" {
-		// Use PowerShell environment variable format $Env:VARIABLE
-		if args.Username != "" && args.Password != "" {
-			cmdArgs = append(cmdArgs, "--user $Env:PLUGIN_USERNAME")
-			cmdArgs = append(cmdArgs, "--password $Env:PLUGIN_PASSWORD")
-		} else if args.APIKey != "" {
-			cmdArgs = append(cmdArgs, "--apikey $Env:PLUGIN_API_KEY")
-		} else if args.AccessToken != "" {
-			cmdArgs = append(cmdArgs, "--access-token $Env:PLUGIN_ACCESS_TOKEN")
-		} else {
-			return nil, fmt.Errorf("either username/password, api key or access token needs to be set")
-		}
+	envPrefix := getEnvPrefix()
+	if args.Username != "" && args.Password != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--user %sPLUGIN_USERNAME", envPrefix))
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--password %sPLUGIN_PASSWORD", envPrefix))
+	} else if args.APIKey != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--apikey %sPLUGIN_API_KEY", envPrefix))
+	} else if args.AccessToken != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--access-token %sPLUGIN_ACCESS_TOKEN", envPrefix))
 	} else {
-		// Use shell environment variable format $VARIABLE
-		if args.Username != "" && args.Password != "" {
-			cmdArgs = append(cmdArgs, "--user $PLUGIN_USERNAME")
-			cmdArgs = append(cmdArgs, "--password $PLUGIN_PASSWORD")
-		} else if args.APIKey != "" {
-			cmdArgs = append(cmdArgs, "--apikey $PLUGIN_API_KEY")
-		} else if args.AccessToken != "" {
-			cmdArgs = append(cmdArgs, "--access-token $PLUGIN_ACCESS_TOKEN")
-		} else {
-			return nil, fmt.Errorf("either username/password, api key or access token needs to be set")
-		}
+		return nil, fmt.Errorf("either username/password, api key or access token needs to be set")
 	}
 	return cmdArgs, nil
 }
 
 func getShell() (string, string) {
 	if runtime.GOOS == "windows" {
-		// First check for PowerShell Core (pwsh.exe) which is used in PowerShell Nanoserver
-		if _, err := os.Stat("C:/Program Files/PowerShell/pwsh.exe"); err == nil {
-			return "pwsh", "-Command"
-		}
-		
-		// Fall back to traditional PowerShell
 		return "powershell", "-Command"
 	}
 
@@ -381,7 +353,7 @@ func getJfrogBin() string {
 
 func getEnvPrefix() string {
 	if runtime.GOOS == "windows" {
-		return "%"
+		return "$Env:"
 	}
 	return "$"
 }
