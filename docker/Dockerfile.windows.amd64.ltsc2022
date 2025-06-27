@@ -15,10 +15,10 @@ RUN mkdir C:\bin | Out-Null; `
     mkdir C:\jdk | Out-Null; `
     mkdir C:\maven | Out-Null; `
     mkdir C:\gradle | Out-Null; `
-    mkdir -Path C:\users\ContainerUser\.jfrog\security\certs | Out-Null
+    mkdir -Path C:\users\ContainerAdministrator\.jfrog\security\certs | Out-Null
 
 # Copy CA certificates
-COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerUser\.jfrog\security\certs\
+COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerAdministrator\.jfrog\security\certs\
 
 # Generate CA certificates
 RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
@@ -31,11 +31,11 @@ RUN Invoke-WebRequest -Uri "https://github.com/adoptium/temurin17-binaries/relea
 RUN Expand-Archive -Path "C:\jdk.zip" -DestinationPath "C:\jdk"
 
 # Download and install Maven
-RUN Invoke-WebRequest -Uri "https://archive.apache.org/dist/maven/maven-3/$env:MAVEN_VERSION/binaries/apache-maven-$env:MAVEN_VERSION-bin.zip" -OutFile "C:\maven.zip"
-RUN Expand-Archive -Path "C:\maven.zip" -DestinationPath "C:\maven"
+RUN Invoke-WebRequest -Uri https://downloads.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
+    Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; 
 
 # Download and install Gradle
-RUN Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-$env:GRADLE_VERSION-bin.zip" -OutFile "C:\gradle.zip"
+RUN Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-8.3-bin.zip" -OutFile "C:\gradle.zip"
 RUN Expand-Archive -Path "C:\gradle.zip" -DestinationPath "C:\gradle"
 
 # Final image using PowerShell Nanoserver - much smaller base image with PowerShell support
