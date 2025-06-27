@@ -50,7 +50,7 @@ WORKDIR C:\uploads
 
 # Copy certificates, JFrog CLI, JDK, Maven, and Gradle from builder stage
 COPY --from=builder C:\certificates C:\certificates
-COPY --from=builder C:\users\ContainerUser\.jfrog C:\users\ContainerUser\.jfrog
+COPY --from=builder C:\users\ContainerAdministrator\.jfrog C:\users\ContainerAdministrator\.jfrog
 COPY --from=builder C:\bin\jfrog.exe C:\bin\jfrog.exe
 COPY --from=builder C:\jdk C:\jdk
 COPY --from=builder C:\maven C:\maven
