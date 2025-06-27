@@ -31,7 +31,7 @@ RUN Invoke-WebRequest -Uri "https://github.com/adoptium/temurin17-binaries/relea
 RUN Expand-Archive -Path "C:\jdk.zip" -DestinationPath "C:\jdk"
 
 # Download and install Maven
-RUN Invoke-WebRequest -Uri https://downloads.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
+RUN Invoke-WebRequest -Uri https://repo1.maven.org/maven2/org/apache/maven/apache-maven/3.9.4/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
     Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven;
 
 # Download and install Gradle
