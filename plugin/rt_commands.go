@@ -42,7 +42,8 @@ func HandleRtCommands(args Args) error {
 		execArgs = append(execArgs, cmd...)
 
 		// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
-		if runtime.GOOS == "windows" {
+		// But only for commands that support it (not for mvn-config or gradle-config)
+		if runtime.GOOS == "windows" && !isMavenOrGradleConfigCommand(cmd) {
 			execArgs = append(execArgs, "--insecure-tls")
 		}
 
@@ -352,6 +353,16 @@ func IsBuildDiscardArgs(args Args) bool {
 		len(args.MaxBuilds) > 0 ||
 		len(args.MaxDays) > 0 {
 		return true
+	}
+	return false
+}
+
+// Helper function to check if a command is a Maven or Gradle config command
+// These commands don't support the --insecure-tls flag
+func isMavenOrGradleConfigCommand(cmd []string) bool {
+	if len(cmd) > 0 {
+		// Check for maven and gradle config commands
+		return cmd[0] == MvnConfig || cmd[0] == GradleConfig
 	}
 	return false
 }
