@@ -39,9 +39,9 @@ func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
-	// Add --interactive=false for Windows to prevent hanging
+	// Add --global=true for Windows to prevent interactive prompts
 	if runtime.GOOS == "windows" {
-		mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--interactive=false")
+		mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--global=true")
 	}
 
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)

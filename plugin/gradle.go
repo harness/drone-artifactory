@@ -42,9 +42,9 @@ func GetGradleCommandArgs(args Args) ([][]string, error) {
 	}
 
 	gradleConfigCommandArgs := []string{GradleConfig}
-	// Add --interactive=false for Windows to prevent hanging
+	// Add --global=true for Windows to prevent interactive prompts
 	if runtime.GOOS == "windows" {
-		gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--interactive=false")
+		gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--global=true")
 	}
 
 	err = PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
