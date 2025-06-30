@@ -9,7 +9,6 @@ var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringIt
 	{"--build-number=", "PLUGIN_BUILD_NUMBER", false, false},
 	{"--detailed-summary=", "PLUGIN_DETAILED_SUMMARY", false, false},
 	{"--format=", "PLUGIN_FORMAT", false, false},
-	{"--insecure-tls=", "PLUGIN_INSECURE", false, false},
 	{"--project=", "PLUGIN_PROJECT", false, false},
 	{"--scan=", "PLUGIN_SCAN", false, false},
 	{"--threads=", "PLUGIN_THREADS", false, false},
