@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"runtime"
 )
 
 var GradleConfigJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
@@ -41,6 +42,11 @@ func GetGradleCommandArgs(args Args) ([][]string, error) {
 	}
 
 	gradleConfigCommandArgs := []string{GradleConfig}
+	// Add --interactive=false for Windows to prevent hanging
+	if runtime.GOOS == "windows" {
+		gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--interactive=false")
+	}
+
 	err = PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err

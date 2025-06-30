@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/sirupsen/logrus"
+	"runtime"
 )
 
 var MavenRunCmdJsonTagToExeFlagMapStringItemList = []JsonTagToExeFlagMapStringItem{
@@ -38,6 +39,11 @@ func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
+	// Add --interactive=false for Windows to prevent hanging
+	if runtime.GOOS == "windows" {
+		mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--interactive=false")
+	}
+
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err
