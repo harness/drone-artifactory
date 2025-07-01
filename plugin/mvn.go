@@ -39,9 +39,22 @@ func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
-	// Add --global=true for Windows to prevent interactive prompts
+	// Add necessary parameters for Windows to prevent all interactive prompts
 	if runtime.GOOS == "windows" {
+		// These parameters prevent all interactive prompts
 		mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--global=true")
+		// Add server ID for deployment/resolution
+		if args.ResolverId != "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--server-id-resolve="+args.ResolverId)
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--server-id-deploy="+args.ResolverId)
+		}
+		// Add repos to prevent prompts
+		if args.ResolveReleaseRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-releases=libs-release")
+		}
+		if args.DeployReleaseRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-releases=libs-release-local")
+		}
 	}
 
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)

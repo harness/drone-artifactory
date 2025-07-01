@@ -42,9 +42,24 @@ func GetGradleCommandArgs(args Args) ([][]string, error) {
 	}
 
 	gradleConfigCommandArgs := []string{GradleConfig}
-	// Add --global=true for Windows to prevent interactive prompts
+	// Add necessary parameters for Windows to prevent all interactive prompts
 	if runtime.GOOS == "windows" {
+		// These parameters prevent all interactive prompts
 		gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--global=true")
+		// Add server ID for deployment/resolution
+		if args.ResolverId != "" {
+			gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--server-id-resolve="+args.ResolverId)
+			gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--server-id-deploy="+args.ResolverId)
+		}
+		// Add repos to prevent prompts
+		if args.RepoResolve == "" {
+			gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--repo-resolve=libs-release")
+		}
+		if args.RepoDeploy == "" {
+			gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--repo-deploy=libs-release-local")
+		}
+		// Use maven-style plugin to enable dependency resolution
+		gradleConfigCommandArgs = append(gradleConfigCommandArgs, "--uses-plugin=true")
 	}
 
 	err = PopulateArgs(&gradleConfigCommandArgs, &args, GradleConfigJsonTagToExeFlagMapStringItemList)
