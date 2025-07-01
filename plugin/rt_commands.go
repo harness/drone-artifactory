@@ -42,8 +42,8 @@ func HandleRtCommands(args Args) error {
 		execArgs = append(execArgs, cmd...)
 
 		// Add insecure TLS flag on Windows to handle certificate issues in Nanoserver
-		// But only for commands that support it (not for mvn-config or gradle-config)
-		if runtime.GOOS == "windows" && !isMavenOrGradleConfigCommand(cmd) {
+		// But only for commands that directly support it (not for maven/gradle commands)
+		if runtime.GOOS == "windows" && shouldAddInsecureTlsFlag(cmd) {
 			execArgs = append(execArgs, "--insecure-tls")
 		}
 
@@ -365,4 +365,25 @@ func isMavenOrGradleConfigCommand(cmd []string) bool {
 		return cmd[0] == MvnConfig || cmd[0] == GradleConfig
 	}
 	return false
+}
+
+// Helper function to determine if --insecure-tls flag should be added
+// Only add to JFrog CLI commands, not to underlying build tool commands
+func shouldAddInsecureTlsFlag(cmd []string) bool {
+	if len(cmd) == 0 {
+		return false
+	}
+	
+	// Don't add to config commands
+	if isMavenOrGradleConfigCommand(cmd) {
+		return false
+	}
+	
+	// Don't add to Maven/Gradle commands as they're passed to the underlying tool
+	if cmd[0] == MvnCmd || cmd[0] == GradleCmd {
+		return false
+	}
+	
+	// Add to all other JFrog CLI commands
+	return true
 }
