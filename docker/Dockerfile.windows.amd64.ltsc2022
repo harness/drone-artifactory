@@ -20,23 +20,23 @@ RUN mkdir C:\bin | Out-Null; `
 # Copy CA certificates
 COPY docker/cert.windows.pem docker/cacert.pem C:\users\ContainerAdministrator\.jfrog\security\certs\
 
-# Generate CA certificates
-RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst
-
-# Download JFrog CLI
-RUN Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe
-
-# Download and install JDK
-RUN Invoke-WebRequest -Uri "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.zip" -OutFile "C:\jdk.zip"
-RUN Expand-Archive -Path "C:\jdk.zip" -DestinationPath "C:\jdk"
-
-# Download and install Maven
-RUN Invoke-WebRequest -Uri https://repo1.maven.org/maven2/org/apache/maven/apache-maven/3.9.4/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
-    Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; 
-
-# Download and install Gradle
-RUN Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-8.3-bin.zip" -OutFile "C:\gradle.zip"
-RUN Expand-Archive -Path "C:\gradle.zip" -DestinationPath "C:\gradle"
+# Generate CA certificates and download/install tools in a single layer
+RUN certutil -generateSSTFromWU C:\certificates\ca-certificates.sst; `
+    `
+    # Download JFrog CLI
+    Invoke-WebRequest -Uri https://releases.jfrog.io/artifactory/jfrog-cli/v2/2.68.0/jfrog-cli-windows-amd64/jfrog.exe -OutFile C:\bin\jfrog.exe; `
+    `
+    # Download and install JDK
+    Invoke-WebRequest -Uri "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.zip" -OutFile "C:\jdk.zip"; `
+    Expand-Archive -Path "C:\jdk.zip" -DestinationPath "C:\jdk"; `
+    `
+    # Download and install Maven
+    Invoke-WebRequest -Uri https://repo1.maven.org/maven2/org/apache/maven/apache-maven/3.9.4/apache-maven-3.9.4-bin.zip -OutFile C:\maven.zip; `
+    Expand-Archive -Path C:\maven.zip -DestinationPath C:\maven; `
+    `
+    # Download and install Gradle
+    Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-8.3-bin.zip" -OutFile "C:\gradle.zip"; `
+    Expand-Archive -Path "C:\gradle.zip" -DestinationPath "C:\gradle"
 
 # Final image using PowerShell Nanoserver - much smaller base image with PowerShell support
 FROM mcr.microsoft.com/powershell:7.3-nanoserver-ltsc2022
@@ -63,6 +63,6 @@ ENV GRADLE_HOME="C:\gradle\gradle-8.3"
 ENV CI="true"
 
 # Add plugin executable
-ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
+COPY release/windows/amd64/plugin C:/bin/drone-artifactory.exe
 
 ENTRYPOINT [ "C:\\bin\\drone-artifactory.exe" ]
