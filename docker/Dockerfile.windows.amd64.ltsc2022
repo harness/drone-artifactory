@@ -45,9 +45,6 @@ FROM mcr.microsoft.com/powershell:7.3-nanoserver-ltsc2022
 USER ContainerAdministrator
 RUN mkdir C:\bin C:\certificates C:\temp C:\uploads C:\jdk C:\maven C:\gradle
 
-# Set working directory to the writable uploads folder
-WORKDIR C:\uploads
-
 # Copy certificates, JFrog CLI, JDK, Maven, and Gradle from builder stage
 COPY --from=builder C:\certificates C:\certificates
 COPY --from=builder C:\users\ContainerAdministrator\.jfrog C:\users\ContainerAdministrator\.jfrog
@@ -59,15 +56,13 @@ COPY --from=builder C:\gradle C:\gradle
 # Set environment variables
 ENV GODEBUG=netdns=go
 ENV PATH="C:\bin;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\gradle\gradle-8.3\bin;C:\Windows\System32;C:\Windows;C:\Program Files\PowerShell"
-ENV TEMP="C:\temp"
-ENV TMP="C:\temp"
 ENV JAVA_HOME="C:\jdk\jdk-17.0.8+7"
 ENV MAVEN_HOME="C:\maven\apache-maven-3.9.4"
 ENV GRADLE_HOME="C:\gradle\gradle-8.3"
-# Add environment variable to avoid JFrog CLI warnings
-ENV JFROG_CLI_AVOID_NEW_VERSION_WARNING="TRUE"
 # Add environment variable to fix certificate issues
 ENV JFROG_CLI_INSECURE_TLS="TRUE"
+# Add environment variable to prevent interactive prompts
+ENV CI="true"
 
 # Add plugin executable
 ADD release/windows/amd64/plugin C:/bin/drone-artifactory.exe
