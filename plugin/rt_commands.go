@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -40,7 +41,6 @@ func HandleRtCommands(args Args) error {
 	for _, cmd := range commandsList {
 		execArgs := []string{getJfrogBin()}
 		execArgs = append(execArgs, cmd...)
-
 		err := ExecCommand(args, execArgs)
 		if err != nil {
 			logrus.Println("Error Unable to run err = ", err)
@@ -350,5 +350,3 @@ func IsBuildDiscardArgs(args Args) bool {
 	}
 	return false
 }
-
-

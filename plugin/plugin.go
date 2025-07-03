@@ -7,7 +7,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,6 +14,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -120,7 +121,6 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
-
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}
@@ -341,7 +341,7 @@ func getShell() (string, string) {
 		if _, err := os.Stat("C:/Program Files/PowerShell/pwsh.exe"); err == nil {
 			return "pwsh", "-Command"
 		}
-		
+
 		// Fall back to traditional PowerShell
 		return "powershell", "-Command"
 	}
