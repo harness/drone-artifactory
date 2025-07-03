@@ -120,7 +120,7 @@ func Exec(ctx context.Context, args Args) error {
 	}
 
 	cmdArgs := []string{getJfrogBin(), "rt", "u", fmt.Sprintf("--url %s", args.URL)}
-	// Use PLUGIN_INSECURE parameter for TLS settings (removed Windows-specific hardcoding)
+
 	if args.Retries != 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("--retries=%d", args.Retries))
 	}

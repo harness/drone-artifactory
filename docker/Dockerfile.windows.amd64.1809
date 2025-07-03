@@ -59,8 +59,6 @@ ENV PATH="C:\bin;C:\jdk\jdk-17.0.8+7\bin;C:\maven\apache-maven-3.9.4\bin;C:\grad
 ENV JAVA_HOME="C:\jdk\jdk-17.0.8+7"
 ENV MAVEN_HOME="C:\maven\apache-maven-3.9.4"
 ENV GRADLE_HOME="C:\gradle\gradle-8.3"
-# Add environment variable to fix certificate issues
-ENV JFROG_CLI_INSECURE_TLS="TRUE"
 # Add environment variable to prevent interactive prompts
 ENV CI="true"
 
