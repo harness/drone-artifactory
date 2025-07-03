@@ -7,7 +7,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,6 +14,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -336,6 +337,12 @@ func setAuthParams(cmdArgs []string, args Args) ([]string, error) {
 
 func getShell() (string, string) {
 	if runtime.GOOS == "windows" {
+		// First check for PowerShell Core (pwsh.exe) which is used in PowerShell Nanoserver
+		if _, err := os.Stat("C:/Program Files/PowerShell/pwsh.exe"); err == nil {
+			return "pwsh", "-Command"
+		}
+
+		// Fall back to traditional PowerShell
 		return "powershell", "-Command"
 	}
 

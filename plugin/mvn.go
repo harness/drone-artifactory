@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"runtime"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,6 +41,31 @@ func GetMavenBuildCommandArgs(args Args) ([][]string, error) {
 	}
 
 	mvnConfigCommandArgs := []string{MvnConfig}
+	// Add necessary parameters for Windows to prevent all interactive prompts
+	if runtime.GOOS == "windows" {
+		// These parameters prevent all interactive prompts
+		mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--global=true")
+		// Add server ID for deployment/resolution
+		if args.ResolverId != "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--server-id-resolve="+args.ResolverId)
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--server-id-deploy="+args.ResolverId)
+		}
+		// Add repos to prevent prompts
+		// Must set both release and snapshot repos to prevent errors
+		if args.ResolveReleaseRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-releases=libs-release")
+		}
+		if args.ResolveSnapshotRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-resolve-snapshots=libs-snapshot")
+		}
+		if args.DeployReleaseRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-releases=libs-release-local")
+		}
+		if args.DeploySnapshotRepo == "" {
+			mvnConfigCommandArgs = append(mvnConfigCommandArgs, "--repo-deploy-snapshots=libs-snapshot-local")
+		}
+	}
+
 	err = PopulateArgs(&mvnConfigCommandArgs, &args, MavenConfigCmdJsonTagToExeFlagMapStringItemList)
 	if err != nil {
 		return cmdList, err

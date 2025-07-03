@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -157,6 +158,12 @@ func GetRtCommandsList(args Args) ([][]string, error) {
 func GetShellForOs(osName string) (string, string) {
 
 	if runtime.GOOS == "windows" {
+		// First check for PowerShell Core (pwsh.exe) which is used in PowerShell Nanoserver
+		if _, err := os.Stat("C:/Program Files/PowerShell/pwsh.exe"); err == nil {
+			return "pwsh", "-Command"
+		}
+
+		// Fall back to traditional PowerShell
 		return "powershell", "-Command"
 	}
 
